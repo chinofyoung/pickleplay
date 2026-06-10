@@ -1,16 +1,31 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ArrowLeft, Clock, CalendarDays } from "lucide-react";
-import { freeHours } from "@/lib/booking/availability";
-import SlotPicker from "./SlotPicker";
+import { ArrowLeft, Clock } from "lucide-react";
+import { isExpired } from "@/lib/booking/expiry";
+import { CourtThumb } from "@/components/court/CourtThumb";
+import CourtScheduleCalendar from "./CourtScheduleCalendar";
 
 interface BookPageProps {
   params: Promise<{ id: string; courtId: string }>;
   searchParams: Promise<{ date?: string; start?: string; end?: string }>;
+}
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAYS_AHEAD = 7;
+
+function addDays(iso: string, n: number) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + n));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
+function describeDay(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return { date: iso, weekday: WEEKDAYS[wd], dayNum: d, month: MONTHS[m - 1] };
 }
 
 export default async function BookCourtPage({ params, searchParams }: BookPageProps) {
@@ -27,7 +42,7 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
   // Fetch court and verify it belongs to this approved club
   const { data: court } = await supabase
     .from("courts")
-    .select("id, name, hourly_rate, open_hour, close_hour, clubs!inner(id, name, status)")
+    .select("id, name, hourly_rate, open_hour, close_hour, image_url, clubs!inner(id, name, status)")
     .eq("id", courtId)
     .eq("clubs.id", clubId)
     .eq("clubs.status", "approved")
@@ -37,42 +52,38 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
 
   const club = Array.isArray(court.clubs) ? court.clubs[0] : court.clubs;
 
-  // Today's date in YYYY-MM-DD in Philippine time (Asia/Manila, UTC+8)
+  // Today + current hour in Philippine time (Asia/Manila, UTC+8)
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
-  const dateToUse = selectedDate && selectedDate >= today ? selectedDate : null;
+  const nowHour = Number(
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", hourCycle: "h23" }).format(new Date())
+  );
 
-  let freeSlots: number[] = [];
+  // The rolling week we display: today .. today + 6
+  const days = Array.from({ length: DAYS_AHEAD }, (_, i) => describeDay(addDays(today, i)));
+  const weekDates = days.map((d) => d.date);
 
-  if (dateToUse) {
-    const { data: bookings } = await supabase
-      .from("bookings")
-      .select("start_hour, end_hour, status, expires_at")
-      .eq("court_id", courtId)
-      .eq("date", dateToUse);
+  // Fetch all bookings for this court across the visible week
+  const { data: bookings } = await supabase
+    .from("bookings")
+    .select("date, start_hour, end_hour, status, expires_at")
+    .eq("court_id", courtId)
+    .in("date", weekDates);
 
-    const mappedBookings = (bookings ?? []).map((b) => ({
-      startHour: b.start_hour,
-      endHour: b.end_hour,
-      status: b.status,
-      expiresAt: b.expires_at ? new Date(b.expires_at) : null,
-    }));
-
-    freeSlots = freeHours(
-      { openHour: court.open_hour, closeHour: court.close_hour },
-      mappedBookings,
-      new Date()
-    );
+  // Build a map: date -> sorted list of actively-booked hours
+  const now = new Date();
+  const blockedByDate: Record<string, number[]> = {};
+  for (const date of weekDates) blockedByDate[date] = [];
+  for (const b of bookings ?? []) {
+    if (b.status === "rejected" || b.status === "cancelled") continue;
+    if (b.status === "pending_payment" && b.expires_at && isExpired(new Date(b.expires_at), now)) continue;
+    const arr = blockedByDate[b.date];
+    if (!arr) continue;
+    for (let h = b.start_hour; h < b.end_hour; h++) arr.push(h);
   }
+  for (const date of weekDates) blockedByDate[date] = [...new Set(blockedByDate[date])].sort((a, b) => a - b);
 
   const hourlyRate = Number(court.hourly_rate);
-
-  // Format hour to 12h display (used for badges below)
-  function formatHour(h: number): string {
-    if (h === 0) return "12:00 AM";
-    if (h === 12) return "12:00 PM";
-    if (h < 12) return `${h}:00 AM`;
-    return `${h - 12}:00 PM`;
-  }
+  const initialDate = selectedDate && weekDates.includes(selectedDate) ? selectedDate : today;
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,6 +95,15 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
             Back to {club?.name ?? "club"}
           </Link>
         </Button>
+
+        {/* Hero image */}
+        <CourtThumb
+          src={court.image_url}
+          alt={`${club?.name} — ${court.name}`}
+          sizes="(max-width: 1280px) 100vw, 1280px"
+          priority
+          className="aspect-[5/2] max-h-72 rounded-xl ring-1 ring-foreground/10"
+        />
 
         {/* Heading */}
         <div className="space-y-1">
@@ -100,82 +120,19 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
           </div>
         </div>
 
-        {/* Date selector */}
-        <Card>
-          <CardHeader className="border-b pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="size-5 text-primary" />
-              Select Date
-            </CardTitle>
-            <CardDescription>
-              Choose a date to see available slots.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <form method="GET" className="flex gap-3 items-end">
-              <div className="flex-1">
-                <label htmlFor="date" className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  Date
-                </label>
-                <input
-                  id="date"
-                  type="date"
-                  name="date"
-                  min={today}
-                  defaultValue={dateToUse ?? ""}
-                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
-                />
-              </div>
-              <Button type="submit" variant="primary" size="default">
-                Check availability
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Booking form — only shown when date is selected */}
-        {dateToUse && (
-          <Card>
-            <CardHeader className="border-b pb-4">
-              <CardTitle>Available Slots — {dateToUse}</CardTitle>
-              {freeSlots.length === 0 ? (
-                <CardDescription className="text-yellow-500">
-                  No slots available on this date.
-                </CardDescription>
-              ) : (
-                <CardDescription>
-                  Select a consecutive start and end hour. Hours must be consecutive.
-                </CardDescription>
-              )}
-            </CardHeader>
-            {freeSlots.length > 0 && (
-              <CardContent className="pt-4 space-y-5">
-                {/* Available slots display */}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">
-                    Free hours on this date:
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {freeSlots.map((h) => (
-                      <Badge key={h} variant="primary" className="text-xs">
-                        {formatHour(h)}–{formatHour(h + 1)}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <SlotPicker
-                  freeHours={freeSlots}
-                  courtId={courtId}
-                  date={dateToUse}
-                  hourlyRate={hourlyRate}
-                  initialStart={initialStart}
-                  initialEnd={initialEnd}
-                />
-              </CardContent>
-            )}
-          </Card>
-        )}
+        <CourtScheduleCalendar
+          courtId={courtId}
+          hourlyRate={hourlyRate}
+          openHour={court.open_hour}
+          closeHour={court.close_hour}
+          days={days}
+          blockedByDate={blockedByDate}
+          today={today}
+          nowHour={nowHour}
+          initialDate={initialDate}
+          initialStart={initialStart}
+          initialEnd={initialEnd}
+        />
       </div>
     </div>
   );

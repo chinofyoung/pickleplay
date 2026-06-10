@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isCourtAvailable } from "@/lib/booking/search";
 import { calcTotalPrice } from "@/lib/booking/pricing";
 import { CourtSearchBar } from "@/components/search/CourtSearchBar";
+import { getLocations } from "@/lib/booking/locations";
+import { CourtThumb } from "@/components/court/CourtThumb";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,11 +12,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const date = sp.date, start = Number(sp.start), end = Number(sp.end);
   const valid = !!date && Number.isInteger(start) && Number.isInteger(end) && end > start;
+  const locations = await getLocations();
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-10 space-y-8">
       <h1 className="text-3xl md:text-4xl">Find an available court</h1>
-      <CourtSearchBar defaults={{ date, start: valid ? start : undefined, end: valid ? end : undefined }} />
+      <CourtSearchBar
+        locations={locations}
+        defaults={{ date, start: valid ? start : undefined, end: valid ? end : undefined, city: sp.city }}
+      />
       {!valid ? (
         <p className="text-text-muted">Pick a date and time range to see available courts.</p>
       ) : (
@@ -29,7 +35,7 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
   const supabase = await createClient();
   const { data: courts } = await supabase
     .from("courts")
-    .select("id, name, hourly_rate, open_hour, close_hour, clubs(id, name, city, area, amenities, status)");
+    .select("id, name, hourly_rate, open_hour, close_hour, image_url, clubs(id, name, city, area, amenities, status)");
 
   const list = (courts ?? []) as any[];
 
@@ -77,7 +83,8 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {available.map((c: any) => (
-        <Card key={c.id}>
+        <Card key={c.id} className="pt-0">
+          <CourtThumb src={c.image_url} alt={`${c.clubs?.name} — ${c.name}`} />
           <CardHeader>
             <CardTitle>{c.clubs?.name} — {c.name}</CardTitle>
             <p className="text-sm text-text-muted">{c.clubs?.city}{c.clubs?.area ? `, ${c.clubs.area}` : ""}</p>

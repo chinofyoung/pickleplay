@@ -1,10 +1,10 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { CourtSearchBar } from "@/components/search/CourtSearchBar";
 import { OwnerCtaSection } from "@/components/marketing/OwnerCtaSection";
+import { getLocations } from "@/lib/booking/locations";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const locations = await getLocations();
   return (
     <div className="max-w-7xl mx-auto px-4 space-y-24">
       {/* Hero Section */}
@@ -51,17 +51,7 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-4 pt-2 w-full">
-            <CourtSearchBar />
-            <div className="flex justify-center lg:justify-start">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto font-medium px-8 border-white/[0.12] text-text hover:bg-white/[0.03] backdrop-blur-sm"
-                asChild
-              >
-                <Link href="/register">List Your Court</Link>
-              </Button>
-            </div>
+            <CourtSearchBar locations={locations} />
           </div>
 
           {/* Stats Strip — clean divided grid */}

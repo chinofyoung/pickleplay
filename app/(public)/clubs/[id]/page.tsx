@@ -9,14 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { CourtThumb } from "@/components/court/CourtThumb";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Clock, QrCode } from "lucide-react";
@@ -33,7 +26,7 @@ export default async function ClubProfilePage({ params }: ClubProfilePageProps) 
   const { data: club } = await supabase
     .from("clubs")
     .select(
-      "id, name, description, city, area, address, amenities, status, courts(id, name, hourly_rate, open_hour, close_hour), club_payment_qrs(id, label, image_path)"
+      "id, name, description, city, area, address, amenities, status, courts(id, name, hourly_rate, open_hour, close_hour, image_url), club_payment_qrs(id, label, image_path)"
     )
     .eq("id", id)
     .eq("status", "approved")
@@ -116,41 +109,26 @@ export default async function ClubProfilePage({ params }: ClubProfilePageProps) 
           </CardHeader>
           <CardContent className="pt-4">
             {courts.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Court</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>Hours</TableHead>
-                    <TableHead className="text-right">Book</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {courts.map((court) => (
-                    <TableRow key={court.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {court.name}
-                      </TableCell>
-                      <TableCell className="text-primary font-medium">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {courts.map((court) => (
+                  <Card key={court.id} size="sm" className="pt-0">
+                    <CourtThumb src={court.image_url} alt={`${club.name} — ${court.name}`} />
+                    <CardContent className="space-y-2">
+                      <div className="font-medium text-foreground">{court.name}</div>
+                      <div className="text-primary font-medium">
                         ₱{Number(court.hourly_rate).toFixed(0)}/hr
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="size-3.5 shrink-0" />
-                          {court.open_hour}:00 – {court.close_hour}:00
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="primary" asChild>
-                          <Link href={`/clubs/${club.id}/book/${court.id}`}>
-                            Book
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Clock className="size-3.5 shrink-0" />
+                        {court.open_hour}:00 – {court.close_hour}:00
+                      </div>
+                      <Button size="sm" variant="primary" asChild className="w-full">
+                        <Link href={`/clubs/${club.id}/book/${court.id}`}>Book</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No courts available yet.

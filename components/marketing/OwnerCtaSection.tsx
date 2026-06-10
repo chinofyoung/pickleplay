@@ -100,12 +100,6 @@ export function OwnerCtaSection() {
               <ArrowRight size={16} />
             </Link>
           </Button>
-          <Link
-            href="/register"
-            className="text-text-muted text-sm hover:text-white transition-colors border-b border-white/[0.1] pb-px hover:border-white/[0.3]"
-          >
-            List your court for free
-          </Link>
         </div>
       </div>
     </section>

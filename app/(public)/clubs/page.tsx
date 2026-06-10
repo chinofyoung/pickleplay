@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CourtThumb } from "@/components/court/CourtThumb";
 import Link from "next/link";
 import { MapPin, Search } from "lucide-react";
 
@@ -20,6 +21,7 @@ interface SearchParams {
 
 interface Court {
   hourly_rate: number;
+  image_url: string | null;
 }
 
 interface Club {
@@ -41,7 +43,7 @@ export default async function ClubsDiscoveryPage({
 
   let query = supabase
     .from("clubs")
-    .select("id,name,city,area,amenities,courts(hourly_rate)")
+    .select("id,name,city,area,amenities,courts(hourly_rate,image_url)")
     .eq("status", "approved");
 
   if (sp.q) query = query.ilike("name", `%${sp.q}%`);
@@ -171,10 +173,12 @@ export default async function ClubsDiscoveryPage({
                   rates && rates.length > 0
                     ? Math.min(...rates)
                     : null;
+                const thumb = club.courts?.find((c) => c.image_url)?.image_url ?? null;
 
                 return (
                   <Link key={club.id} href={`/clubs/${club.id}`} className="group">
-                    <Card className="h-full transition-all group-hover:ring-primary/40 group-hover:ring-2">
+                    <Card className="h-full pt-0 transition-all group-hover:ring-primary/40 group-hover:ring-2">
+                      <CourtThumb src={thumb} alt={club.name} />
                       <CardHeader className="pb-2">
                         <CardTitle className="font-heading text-lg font-bold uppercase tracking-wide text-white group-hover:text-primary transition-colors line-clamp-2">
                           {club.name}
