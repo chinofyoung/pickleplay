@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { CourtSearchBar } from "@/components/search/CourtSearchBar";
+import { OwnerCtaSection } from "@/components/marketing/OwnerCtaSection";
 
 export default function HomePage() {
   return (
@@ -47,18 +48,11 @@ export default function HomePage() {
               From casual rallies to club open plays — discover courts near you, book in seconds,
               and join thousands of players hitting the court every day.
             </p>
+          </div>
 
-            <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4 pt-2">
-              <Button
-                size="lg"
-                className="w-full sm:w-auto font-semibold px-8 bg-cta hover:bg-cta/90 text-white"
-                asChild
-              >
-                <Link href="/clubs" className="flex items-center gap-2">
-                  Find a Court
-                  <ArrowRight size={16} />
-                </Link>
-              </Button>
+          <div className="space-y-4 pt-2 w-full">
+            <CourtSearchBar />
+            <div className="flex justify-center lg:justify-start">
               <Button
                 variant="outline"
                 size="lg"
@@ -91,6 +85,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Club Owner CTA */}
+      <OwnerCtaSection />
     </div>
   );
 }

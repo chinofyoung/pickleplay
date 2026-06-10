@@ -9,6 +9,8 @@ interface SlotPickerProps {
   courtId: string;
   date: string;
   hourlyRate: number;
+  initialStart?: number;
+  initialEnd?: number;
 }
 
 function formatHour(h: number): string {
@@ -18,9 +20,31 @@ function formatHour(h: number): string {
   return `${h - 12}:00 PM`;
 }
 
-export default function SlotPicker({ freeHours, courtId, date, hourlyRate }: SlotPickerProps) {
-  const [startHour, setStartHour] = useState<number | null>(null);
-  const [endHour, setEndHour] = useState<number | null>(null);
+/** Returns true when [start, end) is fully bookable within freeHours (all hours start..end-1 present). */
+function isWindowBookable(freeHours: number[], start: number, end: number): boolean {
+  if (end <= start) return false;
+  const freeSet = new Set(freeHours);
+  for (let h = start; h < end; h++) {
+    if (!freeSet.has(h)) return false;
+  }
+  // Also ensure the hours are consecutive (no gap — already implied by the above,
+  // but check that every hour in the range is present in freeHours).
+  return true;
+}
+
+export default function SlotPicker({ freeHours, courtId, date, hourlyRate, initialStart, initialEnd }: SlotPickerProps) {
+  const resolvedInitialStart =
+    initialStart !== undefined && isWindowBookable(freeHours, initialStart, (initialEnd ?? initialStart + 1))
+      ? initialStart
+      : null;
+
+  const resolvedInitialEnd =
+    resolvedInitialStart !== null && initialEnd !== undefined && isWindowBookable(freeHours, resolvedInitialStart, initialEnd)
+      ? initialEnd
+      : null;
+
+  const [startHour, setStartHour] = useState<number | null>(resolvedInitialStart);
+  const [endHour, setEndHour] = useState<number | null>(resolvedInitialEnd);
 
   // Compute valid end options from chosen start:
   // Walk freeHours starting at start+1; each next hour is valid only if

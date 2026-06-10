@@ -10,12 +10,17 @@ import SlotPicker from "./SlotPicker";
 
 interface BookPageProps {
   params: Promise<{ id: string; courtId: string }>;
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; start?: string; end?: string }>;
 }
 
 export default async function BookCourtPage({ params, searchParams }: BookPageProps) {
   const { id: clubId, courtId } = await params;
-  const { date: selectedDate } = await searchParams;
+  const { date: selectedDate, start: startParam, end: endParam } = await searchParams;
+
+  const parsedStart = startParam !== undefined ? parseInt(startParam, 10) : NaN;
+  const parsedEnd = endParam !== undefined ? parseInt(endParam, 10) : NaN;
+  const initialStart = !isNaN(parsedStart) ? parsedStart : undefined;
+  const initialEnd = !isNaN(parsedEnd) && !isNaN(parsedStart) && parsedEnd > parsedStart ? parsedEnd : undefined;
 
   const supabase = await createClient();
 
@@ -164,6 +169,8 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
                   courtId={courtId}
                   date={dateToUse}
                   hourlyRate={hourlyRate}
+                  initialStart={initialStart}
+                  initialEnd={initialEnd}
                 />
               </CardContent>
             )}
