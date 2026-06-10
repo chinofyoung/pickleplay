@@ -66,7 +66,7 @@ export default async function AdminClubsPage() {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-10">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <ShieldCheck className="size-7 text-primary" />

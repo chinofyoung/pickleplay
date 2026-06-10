@@ -64,7 +64,7 @@ export default async function OwnerBookingsPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-background p-6 md:p-10">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-7xl">
           <p className="text-destructive">
             Failed to load bookings: {error.message}
           </p>
@@ -123,7 +123,7 @@ export default async function OwnerBookingsPage() {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-10">
-      <div className="mx-auto max-w-5xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

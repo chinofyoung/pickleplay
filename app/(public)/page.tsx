@@ -1,56 +1,96 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
-    <section className="max-w-7xl mx-auto px-4 py-16 flex flex-col items-center text-center gap-10">
-      <div className="flex flex-col items-center gap-6">
-        <Badge variant="success">Now Open</Badge>
-        <h1 className="text-5xl md:text-7xl font-heading font-bold uppercase tracking-wide text-white">
-          Find Your <span className="text-primary">Court</span>
-        </h1>
-        <p className="text-text-muted text-lg max-w-xl">
-          Book pickleball courts near you in seconds. Browse clubs, pick your slot, and play.
-        </p>
-        <Button asChild size="lg" className="h-14 md:h-16 px-8 md:px-10 text-lg md:text-xl rounded-xl font-bold gap-2">
-          <Link href="/clubs">Find a Court <ArrowRight className="size-5 md:size-6" /></Link>
-        </Button>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 space-y-24">
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-8 lg:pt-28 lg:pb-16 overflow-visible">
+        {/* Background hero image — full bleed */}
+        <div
+          className="absolute inset-0 -mx-[50vw] left-1/2 right-1/2 w-screen overflow-hidden pointer-events-none"
+          aria-hidden="true"
+        >
+          <Image
+            src="/hero-pickleball.jpg"
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-background/80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/40" />
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Browse Clubs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-text-muted text-sm">Discover pickleball clubs in your area with available courts.</p>
-            <Badge variant="primary" className="mt-3">100+ Clubs</Badge>
-          </CardContent>
-        </Card>
+        <div className="relative z-10 space-y-14">
+          {/* Top Badge */}
+          <div className="flex justify-center lg:justify-start">
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-full backdrop-blur-sm">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-cta" />
+              <span className="text-xs font-semibold text-text-muted">
+                The Pickleball Booking Platform
+              </span>
+            </div>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Book Instantly</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-text-muted text-sm">Reserve your slot in real-time. No phone calls needed.</p>
-            <Badge variant="cta" className="mt-3">Open Now</Badge>
-          </CardContent>
-        </Card>
+          {/* Main Headline */}
+          <div className="space-y-6 text-center lg:text-left max-w-5xl">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight">
+              FIND YOUR NEXT COURT.<br />
+              <span className="text-primary">BOOK IN SECONDS.</span>
+            </h1>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Play More</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-text-muted text-sm">Track your bookings, manage schedules, and enjoy the game.</p>
-            <Badge variant="outline" className="mt-3">Free to Join</Badge>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
+            <p className="text-lg md:text-xl text-text-muted max-w-2xl leading-relaxed font-normal lg:pr-8">
+              From casual rallies to club open plays — discover courts near you, book in seconds,
+              and join thousands of players hitting the court every day.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4 pt-2">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto font-semibold px-8 bg-cta hover:bg-cta/90 text-white"
+                asChild
+              >
+                <Link href="/clubs" className="flex items-center gap-2">
+                  Find a Court
+                  <ArrowRight size={16} />
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto font-medium px-8 border-white/[0.12] text-text hover:bg-white/[0.03] backdrop-blur-sm"
+                asChild
+              >
+                <Link href="/register">List Your Court</Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats Strip — clean divided grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-[1px] bg-white/[0.06] rounded-xl overflow-hidden backdrop-blur-sm">
+            <div className="flex flex-col items-center py-7 px-6 gap-1.5 bg-background/80">
+              <span className="text-3xl font-bold text-white leading-none">50+</span>
+              <span className="text-xs uppercase tracking-wider text-text-muted">Courts Listed</span>
+            </div>
+            <div className="flex flex-col items-center py-7 px-6 gap-1.5 bg-background/80">
+              <span className="text-3xl font-bold text-white leading-none">10K+</span>
+              <span className="text-xs uppercase tracking-wider text-text-muted">Players Joined</span>
+            </div>
+            <div className="flex flex-col items-center py-7 px-6 gap-1.5 bg-background/80">
+              <span className="text-3xl font-bold text-white leading-none">20+</span>
+              <span className="text-xs uppercase tracking-wider text-text-muted">Cities</span>
+            </div>
+            <div className="flex flex-col items-center py-7 px-6 gap-1.5 bg-background/80">
+              <span className="text-3xl font-bold text-white leading-none">30s</span>
+              <span className="text-xs uppercase tracking-wider text-text-muted">Avg. Booking</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

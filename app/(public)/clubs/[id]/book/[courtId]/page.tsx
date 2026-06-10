@@ -71,7 +71,7 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-4 py-10 space-y-6">
+      <div className="mx-auto max-w-7xl px-4 py-10 space-y-6">
         {/* Back link */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
           <Link href={`/clubs/${clubId}`}>

@@ -8,12 +8,7 @@ export async function signUp(formData: FormData) {
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
   const full_name = String(formData.get("full_name"));
-  const wantsOwner = formData.get("role") === "owner";
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name, role: wantsOwner ? "owner" : "player" } },
-  });
+  const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name } } });
   if (error) return redirect(`/register?error=${encodeURIComponent(error.message)}`);
   redirect("/");
 }

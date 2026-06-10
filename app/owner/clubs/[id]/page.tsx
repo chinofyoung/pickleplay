@@ -77,7 +77,7 @@ export default async function ClubDetailPage({ params }: ClubDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-10">
-      <div className="mx-auto max-w-5xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         {/* Back */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
           <Link href="/owner/clubs">

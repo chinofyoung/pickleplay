@@ -53,7 +53,7 @@ export default async function ClubProfilePage({ params }: ClubProfilePageProps) 
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl px-4 py-10 space-y-8">
+      <div className="mx-auto max-w-7xl px-4 py-10 space-y-8">
         {/* Back link */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
           <Link href="/clubs">

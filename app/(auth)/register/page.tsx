@@ -111,47 +111,14 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label>Account type</Label>
-              <div className="flex flex-col gap-2 rounded-lg border border-input bg-input/10 p-3">
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="player"
-                    defaultChecked
-                    className="accent-primary"
-                  />
-                  <div>
-                    <p className="text-sm font-medium leading-none">Player</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Find and book pickleball courts
-                    </p>
-                  </div>
-                </label>
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="owner"
-                    className="accent-primary"
-                  />
-                  <div>
-                    <p className="text-sm font-medium leading-none">
-                      Club owner
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      I own or manage a pickleball club
-                    </p>
-                  </div>
-                </label>
-              </div>
-            </div>
-
             <Button type="submit" className="mt-2 w-full">
               Create account
             </Button>
           </form>
+
+          <p className="mt-4 text-xs text-muted-foreground text-center">
+            Want to list courts? You can apply to become a club owner from your dashboard after signing up.
+          </p>
         </CardContent>
 
         <CardFooter className="justify-center text-sm text-muted-foreground">

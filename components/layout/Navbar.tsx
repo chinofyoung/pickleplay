@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Menu, X, Calendar, BookOpen, Building2, ShieldCheck } from "lucide-react";
+import { Menu, X, Calendar, BookOpen, Building2, ShieldCheck, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,7 @@ const ALWAYS_VISIBLE_LINKS = [
 ];
 
 const AUTH_ONLY_LINKS = [
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "My Bookings", href: "/my-bookings", icon: BookOpen },
 ];
 
@@ -104,7 +105,7 @@ export function Navbar({ auth }: { auth: AuthProp }) {
                         )}
                         {auth?.role === "admin" && (
                             <Link
-                                href="/admin/clubs"
+                                href="/admin/applications"
                                 className="text-text-muted hover:text-primary font-medium transition-colors"
                             >
                                 Admin
@@ -221,11 +222,11 @@ export function Navbar({ auth }: { auth: AuthProp }) {
                                     )}
                                     {auth?.role === "admin" && (
                                         <Link
-                                            href="/admin/clubs"
+                                            href="/admin/applications"
                                             onClick={() => setIsOpen(false)}
                                             className={cn(
                                                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                                                pathname === "/admin/clubs"
+                                                pathname === "/admin/applications"
                                                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                                                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                                             )}

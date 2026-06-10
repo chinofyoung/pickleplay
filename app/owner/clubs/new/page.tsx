@@ -19,7 +19,7 @@ export default async function NewClubPage() {
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-10">
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         {/* Back link */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
           <Link href="/owner/clubs">

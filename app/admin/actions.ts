@@ -14,3 +14,22 @@ export async function setClubStatus(formData: FormData) {
   revalidatePath("/admin/clubs");
   revalidatePath("/clubs");
 }
+
+export async function approveApplication(formData: FormData) {
+  await requireRole(["admin"]);
+  const id = String(formData.get("app_id"));
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("approve_owner_application", { app_id: id });
+  if (error) throw new Error("Could not approve application.");
+  revalidatePath("/admin/applications");
+}
+
+export async function rejectApplication(formData: FormData) {
+  await requireRole(["admin"]);
+  const id = String(formData.get("app_id"));
+  const reason = String(formData.get("reason") || "Application rejected");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reject_owner_application", { app_id: id, reason });
+  if (error) throw new Error("Could not reject application.");
+  revalidatePath("/admin/applications");
+}
