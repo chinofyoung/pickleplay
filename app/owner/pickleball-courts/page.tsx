@@ -20,22 +20,22 @@ import {
 } from "@/components/ui/table";
 import { PlusCircle, ClipboardList } from "lucide-react";
 
-type ClubStatus = "pending" | "approved" | "rejected";
+type PickleballCourtStatus = "pending" | "approved" | "rejected";
 
 function statusVariant(
-  status: ClubStatus
+  status: PickleballCourtStatus
 ): "warning" | "success" | "destructive" {
   if (status === "approved") return "success";
   if (status === "rejected") return "destructive";
   return "warning";
 }
 
-export default async function OwnerClubsPage() {
+export default async function OwnerPickleballCourtsPage() {
   const { user } = await requireRole(["owner"]);
   const supabase = await createClient();
 
-  const { data: clubs } = await supabase
-    .from("clubs")
+  const { data: pickleballCourts } = await supabase
+    .from("pickleball_courts")
     .select("id, name, city, status, created_at")
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
@@ -45,7 +45,7 @@ export default async function OwnerClubsPage() {
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl text-foreground">My Clubs</h1>
+          <h1 className="text-3xl text-foreground">My Pickleball Courts</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" asChild>
               <Link href="/owner/bookings">
@@ -54,22 +54,22 @@ export default async function OwnerClubsPage() {
               </Link>
             </Button>
             <Button asChild>
-              <Link href="/owner/clubs/new">
+              <Link href="/owner/pickleball-courts/new">
                 <PlusCircle className="mr-1.5 size-4" />
-                Create Club
+                Create Pickleball Court
               </Link>
             </Button>
           </div>
         </div>
 
-        {/* Clubs table */}
-        {clubs && clubs.length > 0 ? (
+        {/* Pickleball Courts table */}
+        {pickleballCourts && pickleballCourts.length > 0 ? (
           <Card>
             <CardHeader className="border-b pb-4">
-              <CardTitle>All Clubs</CardTitle>
+              <CardTitle>All Pickleball Courts</CardTitle>
               <CardAction>
                 <span className="text-sm text-muted-foreground">
-                  {clubs.length} club{clubs.length !== 1 ? "s" : ""}
+                  {pickleballCourts.length} pickleball court{pickleballCourts.length !== 1 ? "s" : ""}
                 </span>
               </CardAction>
             </CardHeader>
@@ -84,20 +84,20 @@ export default async function OwnerClubsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clubs.map((club) => (
-                    <TableRow key={club.id}>
-                      <TableCell className="font-medium">{club.name}</TableCell>
+                  {pickleballCourts.map((pickleballCourt) => (
+                    <TableRow key={pickleballCourt.id}>
+                      <TableCell className="font-medium">{pickleballCourt.name}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {club.city}
+                        {pickleballCourt.city}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant(club.status as ClubStatus)}>
-                          {club.status}
+                        <Badge variant={statusVariant(pickleballCourt.status as PickleballCourtStatus)}>
+                          {pickleballCourt.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/owner/clubs/${club.id}`}>Manage</Link>
+                          <Link href={`/owner/pickleball-courts/${pickleballCourt.id}`}>Manage</Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -110,12 +110,12 @@ export default async function OwnerClubsPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
-                You haven&apos;t created any clubs yet.
+                You haven&apos;t created any pickleball courts yet.
               </p>
               <Button asChild className="mt-4">
-                <Link href="/owner/clubs/new">
+                <Link href="/owner/pickleball-courts/new">
                   <PlusCircle className="mr-1.5 size-4" />
-                  Create your first club
+                  Create your first pickleball court
                 </Link>
               </Button>
             </CardContent>

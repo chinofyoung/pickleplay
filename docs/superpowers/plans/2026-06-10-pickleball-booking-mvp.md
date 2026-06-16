@@ -4,7 +4,7 @@
 >
 > **Git is disabled for this project** (project rule). Wherever a normal plan would `git commit`, this plan uses a **Checkpoint** step: run the full test suite + typecheck and confirm green before moving on. Do NOT run any git command.
 
-**Goal:** Build the Core Booking MVP — players discover clubs, book consecutive hourly court slots, pay via a manual QR + payment-proof flow, and owners/admins manage listings and confirm bookings.
+**Goal:** Build the Core Booking MVP — players discover pickleball courts, book consecutive hourly court slots, pay via a manual QR + payment-proof flow, and owners/admins manage listings and confirm bookings.
 
 **Architecture:** Next.js (App Router) frontend + Supabase (Postgres, Auth, Storage). Authorization enforced by Postgres Row Level Security. Server Components fetch data; Client Components handle interactive booking/upload UI. Booking overlap, pricing, slot validation, and expiry live in pure, unit-tested modules.
 
@@ -30,19 +30,19 @@
 pickleplay/
 ├── app/
 │   ├── (public)/
-│   │   ├── page.tsx                     # Home / landing
-│   │   ├── clubs/page.tsx               # Discovery: search + filters
-│   │   └── clubs/[id]/page.tsx          # Club profile + courts + booking entry
+│   │   ├── page.tsx                                      # Home / landing
+│   │   ├── pickleball-courts/page.tsx                    # Discovery: search + filters
+│   │   └── pickleball-courts/[id]/page.tsx               # Pickleball Court profile + courts + booking entry
 │   ├── (auth)/login/page.tsx
 │   ├── (auth)/register/page.tsx
-│   ├── booking/[id]/page.tsx            # Booking detail: QR + proof upload + status
-│   ├── my-bookings/page.tsx             # Player's bookings
-│   ├── owner/                           # Owner dashboard (role-gated)
-│   │   ├── clubs/page.tsx               # owner's clubs list
-│   │   ├── clubs/new/page.tsx           # create club
-│   │   ├── clubs/[id]/page.tsx          # edit club: courts, QRs
-│   │   └── bookings/page.tsx            # review/confirm bookings
-│   └── admin/clubs/page.tsx             # admin approval queue
+│   ├── booking/[id]/page.tsx                             # Booking detail: QR + proof upload + status
+│   ├── my-bookings/page.tsx                              # Player's bookings
+│   ├── owner/                                            # Owner dashboard (role-gated)
+│   │   ├── pickleball-courts/page.tsx                    # owner's pickleball courts list
+│   │   ├── pickleball-courts/new/page.tsx                # create pickleball court
+│   │   ├── pickleball-courts/[id]/page.tsx               # edit pickleball court: courts, QRs
+│   │   └── bookings/page.tsx                             # review/confirm bookings
+│   └── admin/pickleball-courts/page.tsx                  # admin approval queue
 ├── lib/
 │   ├── supabase/client.ts               # browser client
 │   ├── supabase/server.ts               # server client (cookies)
@@ -212,7 +212,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 - [ ] **Step 4: Port Navbar + Footer (adapt Clerk → Supabase)** — Copy raceday's `components/layout/Navbar.tsx` and `Footer.tsx`. In the Navbar:
   - Replace Clerk's `<UserButton/>` / `useUser` with a Supabase-based auth control: a server-fetched user (or a small client component using `createClient().auth.getUser()`) showing "Sign In" / "Register" links when logged out, and a name + Sign Out (calls the `signOut` action from Phase 3) when logged in.
-  - Replace `NAV_LINKS` with pickleplay's: `Courts` (`/clubs`), `My Bookings` (`/my-bookings`). Keep the exact same className strings, scroll-shrink behavior, mobile drawer, and logo slot (use a text logo "PicklePlay" or a placeholder until a logo asset exists).
+  - Replace `NAV_LINKS` with pickleplay's: `Courts` (`/pickleball-courts`), `My Bookings` (`/my-bookings`). Keep the exact same className strings, scroll-shrink behavior, mobile drawer, and logo slot (use a text logo "PicklePlay" or a placeholder until a logo asset exists).
   - Keep all styling classes identical (`fixed top-0 ... z-[100] ... px-4 py-8`, scrolled state `bg-background/80 backdrop-blur-md shadow-lg py-6`, `text-text-muted hover:text-primary`, etc.).
 
 - [ ] **Step 5: Create the public app shell** — Create `app/(public)/layout.tsx` mirroring raceday's app layout:
@@ -258,8 +258,8 @@ create table profiles (
   created_at timestamptz default now()
 );
 
-create type club_status as enum ('pending','approved','rejected');
-create table clubs (
+create type pickleball_court_status as enum ('pending','approved','rejected');
+create table pickleball_courts (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references profiles(id) on delete cascade,
   name text not null,
@@ -268,20 +268,20 @@ create table clubs (
   area text,
   address text,
   amenities text[] default '{}',
-  status club_status not null default 'pending',
+  status pickleball_court_status not null default 'pending',
   created_at timestamptz default now()
 );
 
-create table club_payment_qrs (
+create table pickleball_court_payment_qrs (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references clubs(id) on delete cascade,
+  pickleball_court_id uuid not null references pickleball_courts(id) on delete cascade,
   label text not null,            -- 'gcash' | 'maya' | 'bank' | custom
   image_path text not null
 );
 
 create table courts (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references clubs(id) on delete cascade,
+  pickleball_court_id uuid not null references pickleball_courts(id) on delete cascade,
   name text not null,
   hourly_rate numeric(10,2) not null check (hourly_rate >= 0),
   open_hour int not null check (open_hour between 0 and 23),
@@ -351,9 +351,9 @@ create trigger on_auth_user_created
 
 ```sql
 alter table profiles enable row level security;
-alter table clubs enable row level security;
+alter table pickleball_courts enable row level security;
 alter table courts enable row level security;
-alter table club_payment_qrs enable row level security;
+alter table pickleball_court_payment_qrs enable row level security;
 alter table bookings enable row level security;
 
 create function is_admin() returns boolean language sql stable security definer
@@ -365,38 +365,38 @@ $$;
 create policy profiles_self_read on profiles for select using (id = auth.uid() or is_admin());
 create policy profiles_self_update on profiles for update using (id = auth.uid());
 
--- clubs
-create policy clubs_public_read on clubs for select using (status = 'approved' or owner_id = auth.uid() or is_admin());
-create policy clubs_owner_write on clubs for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
-create policy clubs_admin_write on clubs for update using (is_admin());
+-- pickleball_courts
+create policy pickleball_courts_public_read on pickleball_courts for select using (status = 'approved' or owner_id = auth.uid() or is_admin());
+create policy pickleball_courts_owner_write on pickleball_courts for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+create policy pickleball_courts_admin_write on pickleball_courts for update using (is_admin());
 
 -- courts
 create policy courts_public_read on courts for select using (
-  exists(select 1 from clubs c where c.id = club_id and (c.status='approved' or c.owner_id=auth.uid() or is_admin()))
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and (pc.status='approved' or pc.owner_id=auth.uid() or is_admin()))
 );
 create policy courts_owner_write on courts for all using (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 ) with check (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 );
 
 -- qrs (mirror courts)
-create policy qrs_public_read on club_payment_qrs for select using (
-  exists(select 1 from clubs c where c.id = club_id and (c.status='approved' or c.owner_id=auth.uid() or is_admin()))
+create policy qrs_public_read on pickleball_court_payment_qrs for select using (
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and (pc.status='approved' or pc.owner_id=auth.uid() or is_admin()))
 );
-create policy qrs_owner_write on club_payment_qrs for all using (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+create policy qrs_owner_write on pickleball_court_payment_qrs for all using (
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 ) with check (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 );
 
 -- bookings
 create policy bookings_player_rw on bookings for all using (player_id = auth.uid()) with check (player_id = auth.uid());
 create policy bookings_owner_read on bookings for select using (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 );
 create policy bookings_owner_update on bookings for update using (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 );
 create policy bookings_admin_all on bookings for all using (is_admin());
 ```
@@ -422,8 +422,8 @@ on conflict do nothing;
 create policy proofs_read on storage.objects for select using (
   bucket_id = 'payment-proofs' and (
     is_admin() or owner = auth.uid() or exists(
-      select 1 from bookings b join courts ct on ct.id=b.court_id join clubs c on c.id=ct.club_id
-      where b.payment_proof_path = storage.objects.name and (b.player_id=auth.uid() or c.owner_id=auth.uid())
+      select 1 from bookings b join courts ct on ct.id=b.court_id join pickleball_courts pc on pc.id=ct.pickleball_court_id
+      where b.payment_proof_path = storage.objects.name and (b.player_id=auth.uid() or pc.owner_id=auth.uid())
     )
   )
 );
@@ -749,12 +749,12 @@ export async function signOut() {
 
 ---
 
-## Phase 4 — Owner: Clubs, Courts, QRs
+## Phase 4 — Owner: Pickleball Courts, Courts, QRs
 
-### Task 4.1: Create club
+### Task 4.1: Create pickleball court
 
 **Files:**
-- Create: `app/owner/clubs/new/page.tsx`, `app/owner/actions.ts`, `app/owner/clubs/page.tsx`
+- Create: `app/owner/pickleball-courts/new/page.tsx`, `app/owner/actions.ts`, `app/owner/pickleball-courts/page.tsx`
 
 - [ ] **Step 1: Owner actions** — Create `app/owner/actions.ts`:
 
@@ -765,7 +765,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/requireRole";
 import { redirect } from "next/navigation";
 
-const ClubSchema = z.object({
+const PickleballCourtSchema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),
   city: z.string().min(1),
@@ -774,11 +774,11 @@ const ClubSchema = z.object({
   amenities: z.string().optional(), // comma-separated
 });
 
-export async function createClub(formData: FormData) {
+export async function createPickleballCourt(formData: FormData) {
   const { user } = await requireRole(["owner"]);
-  const parsed = ClubSchema.parse(Object.fromEntries(formData));
+  const parsed = PickleballCourtSchema.parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  const { error } = await supabase.from("clubs").insert({
+  const { error } = await supabase.from("pickleball_courts").insert({
     owner_id: user.id,
     name: parsed.name,
     description: parsed.description,
@@ -788,29 +788,29 @@ export async function createClub(formData: FormData) {
     amenities: parsed.amenities ? parsed.amenities.split(",").map(s => s.trim()).filter(Boolean) : [],
   });
   if (error) throw error;
-  redirect("/owner/clubs");
+  redirect("/owner/pickleball-courts");
 }
 ```
 
-- [ ] **Step 2: New-club page** — Create `app/owner/clubs/new/page.tsx`: `await requireRole(["owner"])`, render form posting to `createClub`.
+- [ ] **Step 2: New-pickleball-court page** — Create `app/owner/pickleball-courts/new/page.tsx`: `await requireRole(["owner"])`, render form posting to `createPickleballCourt`.
 
-- [ ] **Step 3: Owner clubs list** — Create `app/owner/clubs/page.tsx`: `requireRole(["owner"])`, query clubs where `owner_id = user.id`, show name + `status` badge + link to edit.
+- [ ] **Step 3: Owner pickleball courts list** — Create `app/owner/pickleball-courts/page.tsx`: `requireRole(["owner"])`, query pickleball_courts where `owner_id = user.id`, show name + `status` badge + link to edit.
 
-- [ ] **Step 4: Manual verification** — Owner creates a club; row appears with `status='pending'`.
+- [ ] **Step 4: Manual verification** — Owner creates a pickleball court; row appears with `status='pending'`.
 
-- [ ] **Step 5: Checkpoint** — typecheck green; club created with pending status.
+- [ ] **Step 5: Checkpoint** — typecheck green; pickleball court created with pending status.
 
 ### Task 4.2: Add courts
 
 **Files:**
 - Modify: `app/owner/actions.ts` (add `addCourt`)
-- Create: `app/owner/clubs/[id]/page.tsx`
+- Create: `app/owner/pickleball-courts/[id]/page.tsx`
 
 - [ ] **Step 1: addCourt action** — Append to `app/owner/actions.ts`:
 
 ```ts
 const CourtSchema = z.object({
-  club_id: z.string().uuid(),
+  pickleball_court_id: z.string().uuid(),
   name: z.string().min(1),
   hourly_rate: z.coerce.number().min(0),
   open_hour: z.coerce.number().int().min(0).max(23),
@@ -823,15 +823,15 @@ export async function addCourt(formData: FormData) {
   if (c.close_hour <= c.open_hour) throw new Error("close_hour must exceed open_hour");
   const supabase = await createClient();
   // ownership enforced by RLS; also verify here for a clear error
-  const { data: club } = await supabase.from("clubs").select("id").eq("id", c.club_id).eq("owner_id", user.id).single();
-  if (!club) throw new Error("Not your club");
+  const { data: pickleballCourt } = await supabase.from("pickleball_courts").select("id").eq("id", c.pickleball_court_id).eq("owner_id", user.id).single();
+  if (!pickleballCourt) throw new Error("Not your pickleball court");
   const { error } = await supabase.from("courts").insert(c);
   if (error) throw error;
-  redirect(`/owner/clubs/${c.club_id}`);
+  redirect(`/owner/pickleball-courts/${c.pickleball_court_id}`);
 }
 ```
 
-- [ ] **Step 2: Club edit page** — Create `app/owner/clubs/[id]/page.tsx`: `requireRole(["owner"])`, fetch club (owned) + its courts + QRs, render: club details, a courts table, an "add court" form (hidden `club_id`), and the QR section (Task 4.3).
+- [ ] **Step 2: Pickleball court edit page** — Create `app/owner/pickleball-courts/[id]/page.tsx`: `requireRole(["owner"])`, fetch pickleball court (owned) + its courts + QRs, render: pickleball court details, a courts table, an "add court" form (hidden `pickleball_court_id`), and the QR section (Task 4.3).
 
 - [ ] **Step 3: Manual verification** — Add a court; appears in the list with rate + hours.
 
@@ -847,23 +847,23 @@ export async function addCourt(formData: FormData) {
 ```ts
 export async function uploadQr(formData: FormData) {
   const { user } = await requireRole(["owner"]);
-  const clubId = String(formData.get("club_id"));
+  const pickleballCourtId = String(formData.get("pickleball_court_id"));
   const label = String(formData.get("label"));
   const file = formData.get("image") as File;
   if (!file || file.size === 0) throw new Error("Image required");
   const supabase = await createClient();
-  const { data: club } = await supabase.from("clubs").select("id").eq("id", clubId).eq("owner_id", user.id).single();
-  if (!club) throw new Error("Not your club");
-  const path = `${clubId}/${label}-${file.name}`;
+  const { data: pickleballCourt } = await supabase.from("pickleball_courts").select("id").eq("id", pickleballCourtId).eq("owner_id", user.id).single();
+  if (!pickleballCourt) throw new Error("Not your pickleball court");
+  const path = `${pickleballCourtId}/${label}-${file.name}`;
   const { error: upErr } = await supabase.storage.from("payment-qrs").upload(path, file, { upsert: true });
   if (upErr) throw upErr;
-  const { error } = await supabase.from("club_payment_qrs").insert({ club_id: clubId, label, image_path: path });
+  const { error } = await supabase.from("pickleball_court_payment_qrs").insert({ pickleball_court_id: pickleballCourtId, label, image_path: path });
   if (error) throw error;
-  redirect(`/owner/clubs/${clubId}`);
+  redirect(`/owner/pickleball-courts/${pickleballCourtId}`);
 }
 ```
 
-- [ ] **Step 2: QR form** — In `app/owner/clubs/[id]/page.tsx`, add a multipart form (`encType="multipart/form-data"`) posting to `uploadQr` with `label` select (gcash/maya/bank) + file input. Render existing QRs with `getPublicUrl`.
+- [ ] **Step 2: QR form** — In `app/owner/pickleball-courts/[id]/page.tsx`, add a multipart form (`encType="multipart/form-data"`) posting to `uploadQr` with `label` select (gcash/maya/bank) + file input. Render existing QRs with `getPublicUrl`.
 
 - [ ] **Step 3: Manual verification** — Upload a QR; it appears and is publicly viewable.
 
@@ -871,12 +871,12 @@ export async function uploadQr(formData: FormData) {
 
 ---
 
-## Phase 5 — Admin: Club Approval
+## Phase 5 — Admin: Pickleball Court Approval
 
 ### Task 5.1: Admin approval queue
 
 **Files:**
-- Create: `app/admin/clubs/page.tsx`, `app/admin/actions.ts`
+- Create: `app/admin/pickleball-courts/page.tsx`, `app/admin/actions.ts`
 
 - [ ] **Step 1: Admin actions** — Create `app/admin/actions.ts`:
 
@@ -886,20 +886,20 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/requireRole";
 import { revalidatePath } from "next/cache";
 
-export async function setClubStatus(formData: FormData) {
+export async function setPickleballCourtStatus(formData: FormData) {
   await requireRole(["admin"]);
-  const id = String(formData.get("club_id"));
+  const id = String(formData.get("pickleball_court_id"));
   const status = String(formData.get("status")); // 'approved' | 'rejected'
   const supabase = await createClient();
-  const { error } = await supabase.from("clubs").update({ status }).eq("id", id);
+  const { error } = await supabase.from("pickleball_courts").update({ status }).eq("id", id);
   if (error) throw error;
-  revalidatePath("/admin/clubs");
+  revalidatePath("/admin/pickleball-courts");
 }
 ```
 
-- [ ] **Step 2: Admin page** — Create `app/admin/clubs/page.tsx`: `requireRole(["admin"])`, list all clubs (default filter `pending`) with Approve/Reject buttons posting to `setClubStatus`.
+- [ ] **Step 2: Admin page** — Create `app/admin/pickleball-courts/page.tsx`: `requireRole(["admin"])`, list all pickleball courts (default filter `pending`) with Approve/Reject buttons posting to `setPickleballCourtStatus`.
 
-- [ ] **Step 3: Manual verification** — As an admin (set a profile's role to `admin` in DB), approve a club; it becomes visible in public discovery.
+- [ ] **Step 3: Manual verification** — As an admin (set a profile's role to `admin` in DB), approve a pickleball court; it becomes visible in public discovery.
 
 - [ ] **Step 4: Checkpoint** — typecheck green; approval flow verified.
 
@@ -907,34 +907,34 @@ export async function setClubStatus(formData: FormData) {
 
 ## Phase 6 — Discovery
 
-### Task 6.1: Clubs discovery (search + filters)
+### Task 6.1: Pickleball courts discovery (search + filters)
 
 **Files:**
-- Create: `app/(public)/clubs/page.tsx`
+- Create: `app/(public)/pickleball-courts/page.tsx`
 
-- [ ] **Step 1: Discovery page** — Create `app/(public)/clubs/page.tsx` (Server Component) reading `searchParams`: `q` (name), `city`, `maxPrice`, `amenity`.
+- [ ] **Step 1: Discovery page** — Create `app/(public)/pickleball-courts/page.tsx` (Server Component) reading `searchParams`: `q` (name), `city`, `maxPrice`, `amenity`.
 
 ```tsx
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
-export default async function ClubsPage({ searchParams }: { searchParams: Promise<Record<string,string>> }) {
+export default async function PickleballCourtsPage({ searchParams }: { searchParams: Promise<Record<string,string>> }) {
   const sp = await searchParams;
   const supabase = await createClient();
-  let query = supabase.from("clubs")
+  let query = supabase.from("pickleball_courts")
     .select("id,name,city,area,amenities,courts(hourly_rate)")
     .eq("status", "approved");
   if (sp.q) query = query.ilike("name", `%${sp.q}%`);
   if (sp.city) query = query.eq("city", sp.city);
   if (sp.amenity) query = query.contains("amenities", [sp.amenity]);
-  const { data: clubs } = await query;
+  const { data: pickleballCourts } = await query;
   // maxPrice filtered in-memory against min court rate
-  const filtered = (clubs ?? []).filter(c =>
+  const filtered = (pickleballCourts ?? []).filter(c =>
     !sp.maxPrice || (c.courts ?? []).some((ct: any) => ct.hourly_rate <= Number(sp.maxPrice)));
   return (
     <main>
       <form className="filters">
-        <input name="q" placeholder="Search clubs" defaultValue={sp.q} />
+        <input name="q" placeholder="Search pickleball courts" defaultValue={sp.q} />
         <input name="city" placeholder="City" defaultValue={sp.city} />
         <input name="maxPrice" placeholder="Max ₱/hr" defaultValue={sp.maxPrice} />
         <input name="amenity" placeholder="Amenity" defaultValue={sp.amenity} />
@@ -942,7 +942,7 @@ export default async function ClubsPage({ searchParams }: { searchParams: Promis
       </form>
       <ul>
         {filtered.map(c => (
-          <li key={c.id}><Link href={`/clubs/${c.id}`}>{c.name} — {c.city}</Link></li>
+          <li key={c.id}><Link href={`/pickleball-courts/${c.id}`}>{c.name} — {c.city}</Link></li>
         ))}
       </ul>
     </main>
@@ -950,18 +950,18 @@ export default async function ClubsPage({ searchParams }: { searchParams: Promis
 }
 ```
 
-- [ ] **Step 2: Manual verification** — Approved clubs appear; pending clubs do NOT; filters narrow results.
+- [ ] **Step 2: Manual verification** — Approved pickleball courts appear; pending pickleball courts do NOT; filters narrow results.
 
 - [ ] **Step 3: Checkpoint** — typecheck green; discovery verified.
 
-### Task 6.2: Club profile page
+### Task 6.2: Pickleball Court profile page
 
 **Files:**
-- Create: `app/(public)/clubs/[id]/page.tsx`
+- Create: `app/(public)/pickleball-courts/[id]/page.tsx`
 
-- [ ] **Step 1: Profile page** — Create `app/(public)/clubs/[id]/page.tsx`: fetch approved club + courts + QR labels. For each court render name, hourly rate, hours, and a "Book" link to the booking selector (Phase 7). Show payment QR images.
+- [ ] **Step 1: Profile page** — Create `app/(public)/pickleball-courts/[id]/page.tsx`: fetch approved pickleball court + courts + QR labels. For each court render name, hourly rate, hours, and a "Book" link to the booking selector (Phase 7). Show payment QR images.
 
-- [ ] **Step 2: Manual verification** — Profile shows courts + rates + QR images.
+- [ ] **Step 2: Manual verification** — Pickleball Court profile shows courts + rates + QR images.
 
 - [ ] **Step 3: Checkpoint** — typecheck green.
 
@@ -972,7 +972,7 @@ export default async function ClubsPage({ searchParams }: { searchParams: Promis
 ### Task 7.1: Create booking (slot selection)
 
 **Files:**
-- Create: `app/booking/actions.ts`, `app/(public)/clubs/[id]/book/[courtId]/page.tsx`
+- Create: `app/booking/actions.ts`, `app/(public)/pickleball-courts/[id]/book/[courtId]/page.tsx`
 
 - [ ] **Step 1: createBooking action** — Create `app/booking/actions.ts`:
 
@@ -1019,7 +1019,7 @@ export async function createBooking(formData: FormData) {
 }
 ```
 
-- [ ] **Step 2: Booking selector page** — Create `app/(public)/clubs/[id]/book/[courtId]/page.tsx`: a Client Component that lets the user pick a date and a start/end hour from `freeHours` (fetched via a small server action or route), then posts to `createBooking`. For MVP, render a date input + two hour selects constrained to the court's operating hours; the server action is the source of truth for conflicts.
+- [ ] **Step 2: Booking selector page** — Create `app/(public)/pickleball-courts/[id]/book/[courtId]/page.tsx`: a Client Component that lets the user pick a date and a start/end hour from `freeHours` (fetched via a small server action or route), then posts to `createBooking`. For MVP, render a date input + two hour selects constrained to the court's operating hours; the server action is the source of truth for conflicts.
 
 - [ ] **Step 3: Manual verification** — Booking a free range creates a `pending_payment` booking and redirects to its page; booking an overlapping range shows "Slot just taken".
 
@@ -1054,7 +1054,7 @@ export async function uploadProof(formData: FormData) {
 }
 ```
 
-- [ ] **Step 2: Booking detail page** — Create `app/booking/[id]/page.tsx`: fetch booking (RLS scopes to player/owner/admin), show court/club, date/time, total, status. If `pending_payment`: show the club's QR images + a multipart form posting to `uploadProof` + a visible countdown to `expires_at`. If `proof_submitted`: "Awaiting confirmation". If `confirmed`/`rejected`: show status (and `rejection_reason`).
+- [ ] **Step 2: Booking detail page** — Create `app/booking/[id]/page.tsx`: fetch booking (RLS scopes to player/owner/admin), show court/pickleball court, date/time, total, status. If `pending_payment`: show the pickleball court's QR images + a multipart form posting to `uploadProof` + a visible countdown to `expires_at`. If `proof_submitted`: "Awaiting confirmation". If `confirmed`/`rejected`: show status (and `rejection_reason`).
 
 - [ ] **Step 3: Manual verification** — Upload proof → status flips to `proof_submitted`, `expires_at` cleared.
 
@@ -1142,7 +1142,7 @@ select cron.schedule('expire-pending-bookings', '* * * * *', $$select expire_pen
 
 ## Self-Review (completed during authoring)
 
-- **Spec coverage:** Auth/roles (Phase 3), profiles + trigger (1.2), clubs/courts/QR with owner self-service (Phase 4), admin approval gate (Phase 5), discovery search+filter (Phase 6), booking with consecutive hours + overlap + pricing (2.1/2.2/7.1), manual QR + proof + owner confirm/reject (4.3/7.2/8.1), 30-min expiry both live-ignored and cron-cancelled (2.3/2.4/8.2), in-app status only (booking detail + My Bookings, no email), RLS per role (1.3) and storage (1.4). All spec sections mapped.
+- **Spec coverage:** Auth/roles (Phase 3), profiles + trigger (1.2), pickleball courts/courts/QR with owner self-service (Phase 4), admin approval gate (Phase 5), discovery search+filter (Phase 6), booking with consecutive hours + overlap + pricing (2.1/2.2/7.1), manual QR + proof + owner confirm/reject (4.3/7.2/8.1), 30-min expiry both live-ignored and cron-cancelled (2.3/2.4/8.2), in-app status only (booking detail + My Bookings, no email), RLS per role (1.3) and storage (1.4). All spec sections mapped.
 - **Placeholder scan:** No TBD/TODO; every code step shows real code.
 - **Type consistency:** `validateSlot`/`overlaps`/`calcTotalPrice`/`computeExpiry`/`isExpired`/`freeHours` signatures are defined once (Phase 2) and reused with matching shapes in `createBooking`. Status enum values consistent across SQL and TS.
 ```

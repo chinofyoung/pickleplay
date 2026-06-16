@@ -3,16 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/requireRole";
 import { revalidatePath } from "next/cache";
 
-export async function setClubStatus(formData: FormData) {
+export async function setPickleballCourtStatus(formData: FormData) {
   await requireRole(["admin"]);
-  const id = String(formData.get("club_id"));
+  const id = String(formData.get("pickleball_court_id"));
   const status = String(formData.get("status")); // 'approved' | 'rejected'
   if (status !== "approved" && status !== "rejected") throw new Error("Invalid status");
   const supabase = await createClient();
-  const { error } = await supabase.from("clubs").update({ status }).eq("id", id);
+  const { error } = await supabase.from("pickleball_courts").update({ status }).eq("id", id);
   if (error) throw error;
-  revalidatePath("/admin/clubs");
-  revalidatePath("/clubs");
+  revalidatePath("/admin/pickleball-courts");
+  revalidatePath("/pickleball-courts");
 }
 
 export async function approveApplication(formData: FormData) {

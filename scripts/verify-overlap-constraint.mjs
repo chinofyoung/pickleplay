@@ -68,7 +68,7 @@ const playerEmail = `pp.ovl.player.${ts}@test.com`;
 
 let ownerId = null;
 let playerId = null;
-let clubId = null;
+let pickleballCourtId = null;
 let courtId = null;
 let bookingAId = null;
 let bookingCId = null;
@@ -88,7 +88,7 @@ const testDate = new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0]
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
-console.log("\n[Setup] Creating owner, club, court, player...");
+console.log("\n[Setup] Creating owner, pickleball court, court, player...");
 
 // Create owner
 {
@@ -107,30 +107,30 @@ console.log("\n[Setup] Creating owner, club, court, player...");
   console.log(`  owner: ${ownerId}`);
 }
 
-// Sign in as owner to create club/court
+// Sign in as owner to create pickleball court/court
 const ownerClient = await signIn(ownerEmail, password);
 
-// Create club
+// Create pickleball court
 {
-  const { data: club, error } = await ownerClient
-    .from("clubs")
-    .insert({ owner_id: ownerId, name: `OVL Club ${ts}`, city: "Cebu City", amenities: [] })
+  const { data: pickleballCourt, error } = await ownerClient
+    .from("pickleball_courts")
+    .insert({ owner_id: ownerId, name: `OVL Court ${ts}`, city: "Cebu City", amenities: [] })
     .select("id")
     .single();
-  if (error || !club) {
-    console.error("FATAL: create club:", error?.message);
+  if (error || !pickleballCourt) {
+    console.error("FATAL: create pickleball court:", error?.message);
     process.exit(1);
   }
-  clubId = club.id;
-  await admin.from("clubs").update({ status: "approved" }).eq("id", clubId);
-  console.log(`  club: ${clubId}`);
+  pickleballCourtId = pickleballCourt.id;
+  await admin.from("pickleball_courts").update({ status: "approved" }).eq("id", pickleballCourtId);
+  console.log(`  pickleball court: ${pickleballCourtId}`);
 }
 
 // Create court (open 6–21, ₱260/hr)
 {
   const { data: court, error } = await ownerClient
     .from("courts")
-    .insert({ club_id: clubId, name: "OVL Court", hourly_rate: 260, open_hour: 6, close_hour: 21 })
+    .insert({ pickleball_court_id: pickleballCourtId, name: "OVL Court", hourly_rate: 260, open_hour: 6, close_hour: 21 })
     .select("id")
     .single();
   if (error || !court) {
@@ -295,7 +295,7 @@ if (bookingAId) {
 
 // ── Cleanup ───────────────────────────────────────────────────────────────────
 
-console.log("\n[Cleanup] Deleting test users (cascade deletes bookings, clubs, courts)...");
+console.log("\n[Cleanup] Deleting test users (cascade deletes bookings, pickleball courts, courts)...");
 
 for (const [label, uid] of [
   ["owner", ownerId],

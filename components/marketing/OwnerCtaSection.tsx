@@ -96,7 +96,7 @@ export function OwnerCtaSection() {
             asChild
           >
             <Link href="/register" className="flex items-center gap-2">
-              Become a Club Owner
+              Become an Owner
               <ArrowRight size={16} />
             </Link>
           </Button>

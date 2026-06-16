@@ -16,7 +16,7 @@ if (!match) {
 }
 const DATABASE_URL = match[1].trim();
 
-const MIGRATION_FILE = path.join(__dirname, '..', 'supabase', 'migrations', '0011_clubs_default_approved.sql');
+const MIGRATION_FILE = path.join(__dirname, '..', 'supabase', 'migrations', '0011_pickleball_courts_default_approved.sql');
 
 async function applyMigration() {
   const client = new Client({
@@ -35,11 +35,11 @@ async function applyMigration() {
   }
 
   const sql = fs.readFileSync(MIGRATION_FILE, 'utf8');
-  console.log('Applying 0011_clubs_default_approved.sql...');
+  console.log('Applying 0011_pickleball_courts_default_approved.sql...');
 
   try {
     await client.query(sql);
-    console.log('  ✓ 0011_clubs_default_approved.sql applied successfully.');
+    console.log('  ✓ 0011_pickleball_courts_default_approved.sql applied successfully.');
   } catch (err) {
     const msg = err.message || '';
     if (msg.includes('already exists') || err.code === '42710' || err.code === '42P07') {
@@ -53,24 +53,24 @@ async function applyMigration() {
   }
 
   // Verify the default was updated
-  console.log('\nVerifying clubs.status default...');
+  console.log('\nVerifying pickleball_courts.status default...');
   try {
     const result = await client.query(`
       SELECT column_default
       FROM information_schema.columns
       WHERE table_schema = 'public'
-        AND table_name = 'clubs'
+        AND table_name = 'pickleball_courts'
         AND column_name = 'status';
     `);
     if (result.rows.length > 0) {
-      console.log(`  clubs.status default: ${result.rows[0].column_default}`);
+      console.log(`  pickleball_courts.status default: ${result.rows[0].column_default}`);
       if (result.rows[0].column_default && result.rows[0].column_default.includes('approved')) {
-        console.log('  ✓ clubs.status default is approved.');
+        console.log('  ✓ pickleball_courts.status default is approved.');
       } else {
-        console.warn('  ⚠ clubs.status default may not be approved — check manually.');
+        console.warn('  ⚠ pickleball_courts.status default may not be approved — check manually.');
       }
     } else {
-      console.warn('  Could not find clubs.status column info.');
+      console.warn('  Could not find pickleball_courts.status column info.');
     }
   } catch (err) {
     console.warn('  Could not verify default:', err.message);

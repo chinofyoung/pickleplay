@@ -1,13 +1,13 @@
 /**
  * verify-owner.mjs
- * Verifies Phase 4 Owner: Clubs, Courts, Payment QRs
+ * Verifies Phase 4 Owner: Pickleball courts, Courts, Payment QRs
  *
  * Checks:
  *  1. Owner1 can sign up and get role='owner' via service-role update
- *  2. Owner1 can create a club (status='pending')
- *  3. Owner1 can add a court to their club
- *  4. Owner1 can insert a club_payment_qrs row
- *  5. Owner2 CANNOT insert a court into Owner1's club (RLS blocks it)
+ *  2. Owner1 can create a pickleball court (status='pending')
+ *  3. Owner1 can add a court to their pickleball court
+ *  4. Owner1 can insert a pickleball_court_payment_qrs row
+ *  5. Owner2 CANNOT insert a court into Owner1's pickleball court (RLS blocks it)
  *  6. Clean up both test users
  */
 import { createClient } from "@supabase/supabase-js";
@@ -44,7 +44,7 @@ const password = "OwnerTest123!";
 
 let owner1Id = null;
 let owner2Id = null;
-let clubId = null;
+let pickleballCourtId = null;
 let failed = false;
 
 function fail(msg) {
@@ -113,8 +113,8 @@ console.log("\n[2/6] Creating Owner 2...");
   else ok(`owner2 role set to 'owner'`);
 }
 
-// ─── Step 3: Owner1 signs in and creates a club ───────────────────────────────
-console.log("\n[3/6] Owner1: sign in and create club...");
+// ─── Step 3: Owner1 signs in and creates a pickleball court ───────────────────────────────
+console.log("\n[3/6] Owner1: sign in and create pickleball court...");
 {
   const { data: signInData, error: signInErr } =
     await anon.auth.signInWithPassword({ email: owner1Email, password });
@@ -134,33 +134,33 @@ console.log("\n[3/6] Owner1: sign in and create club...");
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data: club, error: clubErr } = await owner1Client
-    .from("clubs")
+  const { data: pickleballCourt, error: pickleballCourtErr } = await owner1Client
+    .from("pickleball_courts")
     .insert({
       owner_id: owner1Id,
-      name: `Test Club ${ts}`,
+      name: `Test Court ${ts}`,
       city: "Cebu City",
       amenities: [],
     })
     .select("id, status")
     .single();
 
-  if (clubErr || !club) {
-    fail(`owner1 create club: ${clubErr?.message ?? "no club returned"}`);
+  if (pickleballCourtErr || !pickleballCourt) {
+    fail(`owner1 create pickleball court: ${pickleballCourtErr?.message ?? "no pickleball court returned"}`);
     process.exit(1);
   }
-  clubId = club.id;
+  pickleballCourtId = pickleballCourt.id;
 
-  if (club.status !== "pending") {
-    fail(`Expected status='pending', got '${club.status}'`);
+  if (pickleballCourt.status !== "pending") {
+    fail(`Expected status='pending', got '${pickleballCourt.status}'`);
   } else {
-    ok(`club created with id: ${clubId} and status='pending'`);
+    ok(`pickleball court created with id: ${pickleballCourtId} and status='pending'`);
   }
 
   // ─── Step 4: Owner1 adds a court ──────────────────────────────────────────
   console.log("\n[4/6] Owner1: add court...");
   const { error: courtErr } = await owner1Client.from("courts").insert({
-    club_id: clubId,
+    pickleball_court_id: pickleballCourtId,
     name: "Court A",
     hourly_rate: 500,
     open_hour: 6,
@@ -168,20 +168,20 @@ console.log("\n[3/6] Owner1: sign in and create club...");
   });
 
   if (courtErr) fail(`owner1 add court: ${courtErr.message}`);
-  else ok(`court added to club`);
+  else ok(`court added to pickleball court`);
 
   // ─── Step 5: Owner1 inserts a payment QR row (no real file, just DB row) ──
   console.log("\n[5/6] Owner1: insert payment QR row...");
-  const fakePath = `${clubId}/gcash-test.png`;
+  const fakePath = `${pickleballCourtId}/gcash-test.png`;
   const { error: qrErr } = await owner1Client
-    .from("club_payment_qrs")
-    .insert({ club_id: clubId, label: "gcash", image_path: fakePath });
+    .from("pickleball_court_payment_qrs")
+    .insert({ pickleball_court_id: pickleballCourtId, label: "gcash", image_path: fakePath });
 
   if (qrErr) fail(`owner1 insert QR row: ${qrErr.message}`);
   else ok(`QR row inserted`);
 }
 
-// ─── Step 6: Owner2 tries to insert a court into Owner1's club (must fail) ───
+// ─── Step 6: Owner2 tries to insert a court into Owner1's pickleball court (must fail) ───
 console.log("\n[6/6] Owner2: attempt cross-owner court insert (must be blocked)...");
 {
   const { data: signInData, error: signInErr } =
@@ -201,7 +201,7 @@ console.log("\n[6/6] Owner2: attempt cross-owner court insert (must be blocked).
     });
 
     const { error: crossErr } = await owner2Client.from("courts").insert({
-      club_id: clubId,
+      pickleball_court_id: pickleballCourtId,
       name: "Rogue Court",
       hourly_rate: 999,
       open_hour: 0,
@@ -210,7 +210,7 @@ console.log("\n[6/6] Owner2: attempt cross-owner court insert (must be blocked).
 
     if (!crossErr) {
       fail(
-        "RLS did NOT block owner2 from inserting into owner1's club — security issue!"
+        "RLS did NOT block owner2 from inserting into owner1's pickleball court — security issue!"
       );
     } else {
       ok(

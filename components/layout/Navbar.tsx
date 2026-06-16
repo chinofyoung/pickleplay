@@ -14,7 +14,7 @@ type AuthProp = {
 } | null;
 
 const ALWAYS_VISIBLE_LINKS = [
-    { label: "Courts", href: "/clubs", icon: Calendar },
+    { label: "Courts", href: "/pickleball-courts", icon: Calendar },
 ];
 
 const AUTH_ONLY_LINKS = [
@@ -53,11 +53,11 @@ export function Navbar({ auth }: { auth: AuthProp }) {
         <>
             <nav
                 className={cn(
-                    "fixed top-0 left-0 right-0 z-[100] transition-all duration-300 px-4 py-8",
+                    "fixed top-0 left-0 right-0 z-[100] transition-all duration-300 py-8",
                     isScrolled ? "bg-background/80 backdrop-blur-md shadow-lg py-6" : "bg-transparent"
                 )}
             >
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
                     {/* Mobile Toggle - Left side for consistency with dashboard */}
                     <button
                         className="md:hidden text-text p-2 hover:bg-white/5 rounded-lg"
@@ -97,10 +97,10 @@ export function Navbar({ auth }: { auth: AuthProp }) {
                         ))}
                         {auth?.role === "owner" && (
                             <Link
-                                href="/owner/clubs"
+                                href="/owner/pickleball-courts"
                                 className="text-text-muted hover:text-primary font-medium transition-colors"
                             >
-                                My Clubs
+                                My Pickleball Courts
                             </Link>
                         )}
                         {auth?.role === "admin" && (
@@ -207,17 +207,17 @@ export function Navbar({ auth }: { auth: AuthProp }) {
                                     })}
                                     {auth?.role === "owner" && (
                                         <Link
-                                            href="/owner/clubs"
+                                            href="/owner/pickleball-courts"
                                             onClick={() => setIsOpen(false)}
                                             className={cn(
                                                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                                                pathname === "/owner/clubs"
+                                                pathname === "/owner/pickleball-courts"
                                                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                                                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                                             )}
                                         >
                                             <Building2 size={16} className="shrink-0" />
-                                            <span>My Clubs</span>
+                                            <span>My Pickleball Courts</span>
                                         </Link>
                                     )}
                                     {auth?.role === "admin" && (

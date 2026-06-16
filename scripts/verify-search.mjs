@@ -1,7 +1,7 @@
 /**
  * verify-search.mjs
  * Verifies Phase 2/3 availability-first court search logic.
- * Seeds an approved club + court (open 6–21, ₱200/hr) and a confirmed booking 9→11
+ * Seeds an approved pickleball court + court (open 6–21, ₱200/hr) and a confirmed booking 9→11
  * on a fixed test date, then asserts:
  *   - available for 6→8 (before booking)  ✓
  *   - available for 11→13 (after booking)  ✓
@@ -110,7 +110,7 @@ const playerEmail = `pp.search.player.${ts}@gmail.com`;
 
 let ownerId = null;
 let playerId = null;
-let clubId = null;
+let pickleballCourtId = null;
 let courtId = null;
 let bookingId = null;
 
@@ -128,7 +128,7 @@ function ok(msg) {
 const TEST_DATE = "2099-12-15";
 
 // ─── Step 1: Seed data ────────────────────────────────────────────────────────
-console.log("\n[1/4] Seeding: owner, club (approved), court (open 6–21, ₱200/hr), player...");
+console.log("\n[1/4] Seeding: owner, pickleball court (approved), court (open 6–21, ₱200/hr), player...");
 
 // Create owner
 {
@@ -149,25 +149,25 @@ console.log("\n[1/4] Seeding: owner, club (approved), court (open 6–21, ₱200
 
 const ownerClient = await signIn(ownerEmail, password);
 
-// Create club and approve it
+// Create pickleball court and approve it
 {
-  const { data: club, error } = await ownerClient
-    .from("clubs")
+  const { data: pickleballCourt, error } = await ownerClient
+    .from("pickleball_courts")
     .insert({
       owner_id: ownerId,
-      name: `Search Test Club ${ts}`,
+      name: `Search Test Court ${ts}`,
       city: "Manila",
       amenities: [],
     })
     .select("id")
     .single();
-  if (error || !club) {
-    fail(`create club: ${error?.message}`);
+  if (error || !pickleballCourt) {
+    fail(`create pickleball court: ${error?.message}`);
     process.exit(1);
   }
-  clubId = club.id;
-  await admin.from("clubs").update({ status: "approved" }).eq("id", clubId);
-  ok(`club created + approved: ${clubId}`);
+  pickleballCourtId = pickleballCourt.id;
+  await admin.from("pickleball_courts").update({ status: "approved" }).eq("id", pickleballCourtId);
+  ok(`pickleball court created + approved: ${pickleballCourtId}`);
 }
 
 // Create court
@@ -175,7 +175,7 @@ const ownerClient = await signIn(ownerEmail, password);
   const { data: court, error } = await ownerClient
     .from("courts")
     .insert({
-      club_id: clubId,
+      pickleball_court_id: pickleballCourtId,
       name: "Search Verify Court",
       hourly_rate: 200,
       open_hour: 6,
@@ -236,23 +236,23 @@ console.log("\n[2/4] Fetching courts + bookings (replicating page query)...");
 
 const { data: courtsRaw } = await admin
   .from("courts")
-  .select("id, name, hourly_rate, open_hour, close_hour, clubs(id, name, city, area, amenities, status)")
+  .select("id, name, hourly_rate, open_hour, close_hour, pickleball_courts(id, name, city, area, amenities, status)")
   .eq("id", courtId);
 
 const list = (courtsRaw ?? []);
 
-// Normalize clubs (handle array or object)
+// Normalize pickleball courts (handle array or object)
 const normalizedList = list.map((c) => ({
   ...c,
-  clubs: Array.isArray(c.clubs) ? c.clubs[0] : c.clubs,
+  pickleball_courts: Array.isArray(c.pickleball_courts) ? c.pickleball_courts[0] : c.pickleball_courts,
 }));
 
-// Filter approved clubs (in-code approach)
-const approvedList = normalizedList.filter((c) => c.clubs?.status === "approved");
+// Filter approved pickleball courts (in-code approach)
+const approvedList = normalizedList.filter((c) => c.pickleball_courts?.status === "approved");
 
 ok(`fetched ${approvedList.length} approved court(s) for courtId ${courtId}`);
 if (approvedList.length === 0) {
-  fail("No approved courts returned — check club status or query");
+  fail("No approved courts returned — check pickleball court status or query");
   process.exit(1);
 }
 

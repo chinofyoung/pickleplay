@@ -15,11 +15,11 @@ Tournaments, Programs/coaching, full operator analytics dashboard, AI assistant 
 
 ## Goals
 
-- Players can find clubs/courts, book one or more consecutive hourly slots, pay via a
+- Players can find pickleball courts, book one or more consecutive hourly slots, pay via a
   manual payment-proof flow, and track booking status in-app.
-- Club Owners can self-register, list a club + courts, upload payment QR codes, and
+- Owners can self-register, list a pickleball court + courts, upload payment QR codes, and
   review/confirm bookings.
-- Platform Admins can approve/reject clubs and oversee all activity.
+- Platform Admins can approve/reject pickleball courts and oversee all activity.
 
 ## Non-Goals (this cycle)
 
@@ -48,7 +48,7 @@ Extends Supabase `auth.users`.
 - `full_name`, `contact_number`
 - timestamps
 
-### clubs
+### pickleball_courts
 - `id`, `owner_id` (FK profiles)
 - `name`, `description`
 - `city` / `area`, `address`
@@ -58,7 +58,7 @@ Extends Supabase `auth.users`.
 - timestamps
 
 ### courts
-- `id`, `club_id` (FK clubs)
+- `id`, `pickleball_court_id` (FK pickleball_courts)
 - `name`
 - `hourly_rate` (₱, integer centavos or decimal)
 - `open_hour`, `close_hour` (operating hours, 0–23)
@@ -82,8 +82,8 @@ rejected at write time (DB-level overlap check).
 ## Key User Flows
 
 ### Player
-1. Browse/search clubs (text search + city/area, price, amenity filters).
-2. Open club profile → see courts, hours, rates, amenities, payment QRs.
+1. Browse/search pickleball courts (text search + city/area, price, amenity filters).
+2. Open pickleball court profile → see courts, hours, rates, amenities, payment QRs.
 3. Pick court, date, and one or more consecutive hours.
 4. Create booking → status `pending_payment`, `expires_at` = now + 30 min.
 5. See the owner's payment QR → pay externally (GCash/Maya/bank).
@@ -91,27 +91,27 @@ rejected at write time (DB-level overlap check).
 7. Wait for owner confirmation → status `confirmed` (or `rejected`).
 8. Track all bookings and statuses in "My Bookings".
 
-### Club Owner
+### Owner
 1. Register / sign in (role = owner).
-2. Create club → status `pending` (awaits admin approval).
+2. Create pickleball court → status `pending` (awaits admin approval).
 3. Add courts (name, hourly rate, operating hours).
 4. Upload payment QR codes (GCash / Maya / bank).
 5. Review incoming bookings (those in `proof_submitted`).
 6. Confirm (→ `confirmed`) or reject (→ `rejected`, with reason; slot released).
 
 ### Platform Admin
-1. Review clubs in `pending` status → approve / reject.
-2. Oversight read access across all clubs and bookings.
+1. Review pickleball courts in `pending` status → approve / reject.
+2. Oversight read access across all pickleball courts and bookings.
 
 ## Authorization (RLS)
 
 - **profiles:** user reads/updates own; admin reads all.
-- **clubs:** public read where `status = approved`; owner CRUD own; admin full.
-- **courts:** public read where parent club approved; owner CRUD own; admin full.
+- **pickleball_courts:** public read where `status = approved`; owner CRUD own; admin full.
+- **courts:** public read where parent pickleball court approved; owner CRUD own; admin full.
 - **bookings:** player CRUD own; owner reads + updates status on bookings for their
   courts; admin full.
 - **storage:** payment proofs readable by the booking's player + the court's owner +
-  admin; QR images readable publicly (on approved clubs).
+  admin; QR images readable publicly (on approved pickleball courts).
 
 ## Edge Cases & Error Handling
 
@@ -121,7 +121,7 @@ rejected at write time (DB-level overlap check).
   **30 minutes** (`expires_at`), freeing the slot. Enforced via a scheduled job /
   Supabase cron and guarded in availability queries (expired pending bookings don't block).
 - **Proof rejection:** owner rejects with a reason; player sees reason in-app; slot released.
-- **Unapproved clubs/courts** are hidden from public discovery.
+- **Unapproved pickleball courts** are hidden from public discovery.
 - **Invalid slot selection:** non-consecutive hours, hours outside operating window, or
   zero-length ranges are rejected with validation errors.
 

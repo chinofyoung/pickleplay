@@ -25,47 +25,47 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, PlusCircle, QrCode } from "lucide-react";
 
-type ClubStatus = "pending" | "approved" | "rejected";
+type PickleballCourtStatus = "pending" | "approved" | "rejected";
 
 function statusVariant(
-  status: ClubStatus
+  status: PickleballCourtStatus
 ): "warning" | "success" | "destructive" {
   if (status === "approved") return "success";
   if (status === "rejected") return "destructive";
   return "warning";
 }
 
-interface ClubDetailPageProps {
+interface PickleballCourtDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function ClubDetailPage({ params }: ClubDetailPageProps) {
+export default async function PickleballCourtDetailPage({ params }: PickleballCourtDetailPageProps) {
   const { id } = await params;
   const { user } = await requireRole(["owner"]);
   const supabase = await createClient();
 
-  // Fetch the club (must belong to this owner)
-  const { data: club } = await supabase
-    .from("clubs")
+  // Fetch the pickleball court (must belong to this owner)
+  const { data: pickleballCourt } = await supabase
+    .from("pickleball_courts")
     .select("id, name, description, city, area, address, amenities, status")
     .eq("id", id)
     .eq("owner_id", user.id)
     .single();
 
-  if (!club) redirect("/owner/clubs");
+  if (!pickleballCourt) redirect("/owner/pickleball-courts");
 
   // Fetch courts
   const { data: courts } = await supabase
     .from("courts")
     .select("id, name, hourly_rate, open_hour, close_hour")
-    .eq("club_id", id)
+    .eq("pickleball_court_id", id)
     .order("name");
 
   // Fetch payment QRs
   const { data: qrs } = await supabase
-    .from("club_payment_qrs")
+    .from("pickleball_court_payment_qrs")
     .select("id, label, image_path")
-    .eq("club_id", id);
+    .eq("pickleball_court_id", id);
 
   // Resolve public URLs for QR images
   const qrsWithUrls = (qrs ?? []).map((qr) => {
@@ -80,43 +80,43 @@ export default async function ClubDetailPage({ params }: ClubDetailPageProps) {
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Back */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
-          <Link href="/owner/clubs">
+          <Link href="/owner/pickleball-courts">
             <ArrowLeft className="mr-1 size-4" />
-            Back to clubs
+            Back to pickleball courts
           </Link>
         </Button>
 
-        {/* Club header */}
+        {/* Pickleball Court header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl text-foreground">{club.name}</h1>
+            <h1 className="text-3xl text-foreground">{pickleballCourt.name}</h1>
             <p className="mt-1 text-muted-foreground">
-              {[club.area, club.city].filter(Boolean).join(", ")}
+              {[pickleballCourt.area, pickleballCourt.city].filter(Boolean).join(", ")}
             </p>
           </div>
-          <Badge variant={statusVariant(club.status as ClubStatus)}>
-            {club.status}
+          <Badge variant={statusVariant(pickleballCourt.status as PickleballCourtStatus)}>
+            {pickleballCourt.status}
           </Badge>
         </div>
 
-        {/* Club details */}
-        {(club.description || club.address || (club.amenities && club.amenities.length > 0)) && (
+        {/* Pickleball Court details */}
+        {(pickleballCourt.description || pickleballCourt.address || (pickleballCourt.amenities && pickleballCourt.amenities.length > 0)) && (
           <Card>
             <CardHeader className="border-b pb-4">
               <CardTitle>About</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pt-4 text-sm text-muted-foreground">
-              {club.description && <p>{club.description}</p>}
-              {club.address && (
+              {pickleballCourt.description && <p>{pickleballCourt.description}</p>}
+              {pickleballCourt.address && (
                 <p>
                   <span className="font-medium text-foreground">Address:</span>{" "}
-                  {club.address}
+                  {pickleballCourt.address}
                 </p>
               )}
-              {club.amenities && club.amenities.length > 0 && (
+              {pickleballCourt.amenities && pickleballCourt.amenities.length > 0 && (
                 <p>
                   <span className="font-medium text-foreground">Amenities:</span>{" "}
-                  {(club.amenities as string[]).join(", ")}
+                  {(pickleballCourt.amenities as string[]).join(", ")}
                 </p>
               )}
             </CardContent>
@@ -166,7 +166,7 @@ export default async function ClubDetailPage({ params }: ClubDetailPageProps) {
                 Add a Court
               </h3>
               <form action={addCourt} className="grid gap-4 sm:grid-cols-2">
-                <input type="hidden" name="club_id" value={club.id} />
+                <input type="hidden" name="pickleball_court_id" value={pickleballCourt.id} />
 
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <Label htmlFor="court-name">
@@ -288,7 +288,7 @@ export default async function ClubDetailPage({ params }: ClubDetailPageProps) {
                 encType="multipart/form-data"
                 className="flex flex-col gap-4 sm:flex-row sm:items-end"
               >
-                <input type="hidden" name="club_id" value={club.id} />
+                <input type="hidden" name="pickleball_court_id" value={pickleballCourt.id} />
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="qr-label">Payment Method</Label>

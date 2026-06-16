@@ -24,7 +24,7 @@ interface Court {
   image_url: string | null;
 }
 
-interface Club {
+interface PickleballCourt {
   id: string;
   name: string;
   city: string;
@@ -33,7 +33,7 @@ interface Club {
   courts: Court[];
 }
 
-export default async function ClubsDiscoveryPage({
+export default async function PickleballCourtsDiscoveryPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
@@ -42,7 +42,7 @@ export default async function ClubsDiscoveryPage({
   const supabase = await createClient();
 
   let query = supabase
-    .from("clubs")
+    .from("pickleball_courts")
     .select("id,name,city,area,amenities,courts(hourly_rate,image_url)")
     .eq("status", "approved");
 
@@ -50,17 +50,17 @@ export default async function ClubsDiscoveryPage({
   if (sp.city) query = query.eq("city", sp.city);
   if (sp.amenity) query = query.contains("amenities", [sp.amenity]);
 
-  const { data: rawClubs } = await query.order("name");
+  const { data: rawPickleballCourts } = await query.order("name");
 
-  let clubs: Club[] = (rawClubs ?? []) as Club[];
+  let pickleballCourts: PickleballCourt[] = (rawPickleballCourts ?? []) as PickleballCourt[];
 
   // In-memory maxPrice filter against min court hourly_rate
   if (sp.maxPrice) {
     const maxPriceNum = Number(sp.maxPrice);
     if (!isNaN(maxPriceNum)) {
-      clubs = clubs.filter((club) => {
-        if (!club.courts || club.courts.length === 0) return true;
-        const minRate = Math.min(...club.courts.map((c) => Number(c.hourly_rate)));
+      pickleballCourts = pickleballCourts.filter((pickleballCourt) => {
+        if (!pickleballCourt.courts || pickleballCourt.courts.length === 0) return true;
+        const minRate = Math.min(...pickleballCourt.courts.map((c) => Number(c.hourly_rate)));
         return minRate <= maxPriceNum;
       });
     }
@@ -74,10 +74,10 @@ export default async function ClubsDiscoveryPage({
         {/* Page header */}
         <div className="space-y-2">
           <h1 className="font-heading text-4xl md:text-5xl font-bold uppercase tracking-wide text-white">
-            Find a <span className="text-primary">Club</span>
+            Find a <span className="text-primary">Pickleball Court</span>
           </h1>
           <p className="text-muted-foreground text-base">
-            Browse approved pickleball clubs. Filter by location, price, or amenities.
+            Browse approved pickleball courts. Filter by location, price, or amenities.
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export default async function ClubsDiscoveryPage({
             </label>
             <Input
               name="q"
-              placeholder="Club name…"
+              placeholder="Pickleball court name…"
               defaultValue={sp.q ?? ""}
             />
           </div>
@@ -135,58 +135,58 @@ export default async function ClubsDiscoveryPage({
             </Button>
             {hasFilters && (
               <Button type="button" variant="outline" asChild>
-                <Link href="/clubs">Clear filters</Link>
+                <Link href="/pickleball-courts">Clear filters</Link>
               </Button>
             )}
           </div>
         </form>
 
         {/* Results */}
-        {clubs.length === 0 ? (
+        {pickleballCourts.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-20 text-center">
             <MapPin className="size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
-              No clubs found
+              No pickleball courts found
             </p>
             <p className="text-sm text-muted-foreground/60">
               {hasFilters
                 ? "Try adjusting your filters."
-                : "No approved clubs available yet."}
+                : "No approved pickleball courts available yet."}
             </p>
             {hasFilters && (
               <Button variant="outline" asChild>
-                <Link href="/clubs">Clear filters</Link>
+                <Link href="/pickleball-courts">Clear filters</Link>
               </Button>
             )}
           </div>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              {clubs.length} club{clubs.length !== 1 ? "s" : ""} found
+              {pickleballCourts.length} pickleball court{pickleballCourts.length !== 1 ? "s" : ""} found
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {clubs.map((club) => {
-                const rates = club.courts
+              {pickleballCourts.map((pickleballCourt) => {
+                const rates = pickleballCourt.courts
                   ?.map((c) => Number(c.hourly_rate))
                   .filter((r) => !isNaN(r));
                 const minRate =
                   rates && rates.length > 0
                     ? Math.min(...rates)
                     : null;
-                const thumb = club.courts?.find((c) => c.image_url)?.image_url ?? null;
+                const thumb = pickleballCourt.courts?.find((c) => c.image_url)?.image_url ?? null;
 
                 return (
-                  <Link key={club.id} href={`/clubs/${club.id}`} className="group">
+                  <Link key={pickleballCourt.id} href={`/pickleball-courts/${pickleballCourt.id}`} className="group">
                     <Card className="h-full pt-0 transition-all group-hover:ring-primary/40 group-hover:ring-2">
-                      <CourtThumb src={thumb} alt={club.name} />
+                      <CourtThumb src={thumb} alt={pickleballCourt.name} />
                       <CardHeader className="pb-2">
                         <CardTitle className="font-heading text-lg font-bold uppercase tracking-wide text-white group-hover:text-primary transition-colors line-clamp-2">
-                          {club.name}
+                          {pickleballCourt.name}
                         </CardTitle>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <MapPin className="size-3.5 shrink-0" />
                           <span>
-                            {[club.area, club.city].filter(Boolean).join(", ")}
+                            {[pickleballCourt.area, pickleballCourt.city].filter(Boolean).join(", ")}
                           </span>
                         </div>
                       </CardHeader>
@@ -196,16 +196,16 @@ export default async function ClubsDiscoveryPage({
                             From ₱{minRate.toFixed(0)}/hr
                           </p>
                         )}
-                        {club.amenities && club.amenities.length > 0 && (
+                        {pickleballCourt.amenities && pickleballCourt.amenities.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
-                            {club.amenities.slice(0, 4).map((a) => (
+                            {pickleballCourt.amenities.slice(0, 4).map((a) => (
                               <Badge key={a} variant="outline" className="text-xs capitalize">
                                 {a}
                               </Badge>
                             ))}
-                            {club.amenities.length > 4 && (
+                            {pickleballCourt.amenities.length > 4 && (
                               <Badge variant="ghost" className="text-xs">
-                                +{club.amenities.length - 4}
+                                +{pickleballCourt.amenities.length - 4}
                               </Badge>
                             )}
                           </div>

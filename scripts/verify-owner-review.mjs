@@ -79,8 +79,8 @@ const playerEmail = `pp.rev.player.${ts}@gmail.com`;
 let owner1Id = null;
 let owner2Id = null;
 let playerId = null;
-let clubId = null;
-let club2Id = null;
+let pickleballCourtId = null;
+let pickleballCourt2Id = null;
 let courtId = null;
 let court2Id = null;
 let booking1Id = null;
@@ -100,8 +100,8 @@ function ok(msg) {
 
 const testDate = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
-// ─── [1] Setup: owner1, approved club + court, player ────────────────────────
-console.log("\n[1/6] Setup: owner1, club, court, player...");
+// ─── [1] Setup: owner1, approved pickleball court + court, player ────────────────────────
+console.log("\n[1/6] Setup: owner1, pickleball court, court, player...");
 
 {
   const { data, error } = await admin.auth.admin.createUser({
@@ -117,21 +117,21 @@ console.log("\n[1/6] Setup: owner1, club, court, player...");
 const owner1Client = await signIn(owner1Email, password);
 
 {
-  const { data: club, error } = await owner1Client.from("clubs").insert({
+  const { data: pickleballCourt, error } = await owner1Client.from("pickleball_courts").insert({
     owner_id: owner1Id,
-    name: `Rev Club1 ${ts}`,
+    name: `Rev Court1 ${ts}`,
     city: "Cebu City",
     amenities: [],
   }).select("id").single();
-  if (error || !club) { fail(`create club1: ${error?.message}`); process.exit(1); }
-  clubId = club.id;
-  await admin.from("clubs").update({ status: "approved" }).eq("id", clubId);
-  ok(`club1 created + approved: ${clubId}`);
+  if (error || !pickleballCourt) { fail(`create pickleball court1: ${error?.message}`); process.exit(1); }
+  pickleballCourtId = pickleballCourt.id;
+  await admin.from("pickleball_courts").update({ status: "approved" }).eq("id", pickleballCourtId);
+  ok(`pickleball court1 created + approved: ${pickleballCourtId}`);
 }
 
 {
   const { data: court, error } = await owner1Client.from("courts").insert({
-    club_id: clubId,
+    pickleball_court_id: pickleballCourtId,
     name: "Rev Court A",
     hourly_rate: 300,
     open_hour: 6,
@@ -286,21 +286,21 @@ console.log("\n[5/6] RLS negative: owner2 cannot update owner1's booking...");
   ok(`owner2 created: ${owner2Id}`);
 }
 
-// Give owner2 their own club + court (so they're a valid owner, just different clubs)
+// Give owner2 their own pickleball court + court (so they're a valid owner, just different pickleball courts)
 const owner2Client = await signIn(owner2Email, password);
 
 {
-  const { data: club2, error } = await owner2Client.from("clubs").insert({
+  const { data: pickleballCourt2, error } = await owner2Client.from("pickleball_courts").insert({
     owner_id: owner2Id,
-    name: `Rev Club2 ${ts}`,
+    name: `Rev Court2 ${ts}`,
     city: "Manila",
     amenities: [],
   }).select("id").single();
-  if (error || !club2) { fail(`create club2: ${error?.message}`); }
+  if (error || !pickleballCourt2) { fail(`create pickleball court2: ${error?.message}`); }
   else {
-    club2Id = club2.id;
-    await admin.from("clubs").update({ status: "approved" }).eq("id", club2Id);
-    ok(`owner2's club2 created + approved: ${club2Id}`);
+    pickleballCourt2Id = pickleballCourt2.id;
+    await admin.from("pickleball_courts").update({ status: "approved" }).eq("id", pickleballCourt2Id);
+    ok(`owner2's pickleball court2 created + approved: ${pickleballCourt2Id}`);
   }
 }
 

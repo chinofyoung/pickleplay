@@ -35,14 +35,14 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
   const supabase = await createClient();
   const { data: courts } = await supabase
     .from("courts")
-    .select("id, name, hourly_rate, open_hour, close_hour, image_url, clubs(id, name, city, area, amenities, status)");
+    .select("id, name, hourly_rate, open_hour, close_hour, image_url, pickleball_courts(id, name, city, area, amenities, status)");
 
   const list = (courts ?? []) as any[];
 
-  // Filter to approved clubs in code (avoids Supabase inner-join filtering edge cases)
+  // Filter to approved pickleball courts in code (avoids Supabase inner-join filtering edge cases)
   const approvedList = list.filter(c => {
-    const club = Array.isArray(c.clubs) ? c.clubs[0] : c.clubs;
-    return club?.status === "approved";
+    const pickleballCourt = Array.isArray(c.pickleball_courts) ? c.pickleball_courts[0] : c.pickleball_courts;
+    return pickleballCourt?.status === "approved";
   });
 
   const courtIds = approvedList.map((c: any) => c.id);
@@ -62,20 +62,20 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
     isCourtAvailable({ openHour: c.open_hour, closeHour: c.close_hour }, byCourt.get(c.id) ?? [], { startHour: start, endHour: end }, now)
   );
 
-  // Normalize clubs to always be an object
+  // Normalize pickleball courts to always be an object
   available = available.map((c: any) => ({
     ...c,
-    clubs: Array.isArray(c.clubs) ? c.clubs[0] : c.clubs,
+    pickleball_courts: Array.isArray(c.pickleball_courts) ? c.pickleball_courts[0] : c.pickleball_courts,
   }));
 
-  if (city) available = available.filter((c: any) => c.clubs?.city === city);
+  if (city) available = available.filter((c: any) => c.pickleball_courts?.city === city);
   if (maxPrice) available = available.filter((c: any) => Number(c.hourly_rate) <= Number(maxPrice));
-  if (amenity) available = available.filter((c: any) => (c.clubs?.amenities ?? []).includes(amenity));
+  if (amenity) available = available.filter((c: any) => (c.pickleball_courts?.amenities ?? []).includes(amenity));
 
   if (!available.length) {
     return (
       <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-8 text-center">
-        <p className="text-text-muted">No courts free for that window. Try a different time, or <Link href="/clubs" className="text-primary hover:underline">browse all clubs</Link>.</p>
+        <p className="text-text-muted">No courts free for that window. Try a different time, or <Link href="/pickleball-courts" className="text-primary hover:underline">browse all pickleball courts</Link>.</p>
       </div>
     );
   }
@@ -84,16 +84,16 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {available.map((c: any) => (
         <Card key={c.id} className="pt-0">
-          <CourtThumb src={c.image_url} alt={`${c.clubs?.name} — ${c.name}`} />
+          <CourtThumb src={c.image_url} alt={`${c.pickleball_courts?.name} — ${c.name}`} />
           <CardHeader>
-            <CardTitle>{c.clubs?.name} — {c.name}</CardTitle>
-            <p className="text-sm text-text-muted">{c.clubs?.city}{c.clubs?.area ? `, ${c.clubs.area}` : ""}</p>
+            <CardTitle>{c.pickleball_courts?.name} — {c.name}</CardTitle>
+            <p className="text-sm text-text-muted">{c.pickleball_courts?.city}{c.pickleball_courts?.area ? `, ${c.pickleball_courts.area}` : ""}</p>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-text-muted">Open {c.open_hour}:00–{c.close_hour}:00</p>
             <p className="text-lg font-bold">₱{calcTotalPrice(Number(c.hourly_rate), start, end)} <span className="text-sm font-normal text-text-muted">for {end - start}h</span></p>
             <Button asChild className="w-full bg-cta hover:bg-cta/90 text-white">
-              <Link href={`/clubs/${c.clubs?.id}/book/${c.id}?date=${date}&start=${start}&end=${end}`}>Book {String(start).padStart(2,"0")}:00–{String(end).padStart(2,"00")}:00</Link>
+              <Link href={`/pickleball-courts/${c.pickleball_courts?.id}/book/${c.id}?date=${date}&start=${start}&end=${end}`}>Book {String(start).padStart(2,"0")}:00–{String(end).padStart(2,"00")}:00</Link>
             </Button>
           </CardContent>
         </Card>

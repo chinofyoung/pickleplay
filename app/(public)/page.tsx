@@ -15,7 +15,7 @@ export default async function HomePage() {
           aria-hidden="true"
         >
           <Image
-            src="/hero-pickleball.jpg"
+            src="/assets/pickle.png"
             alt=""
             fill
             sizes="100vw"
@@ -45,7 +45,7 @@ export default async function HomePage() {
             </h1>
 
             <p className="text-lg md:text-xl text-text-muted max-w-2xl leading-relaxed font-normal lg:pr-8">
-              From casual rallies to club open plays — discover courts near you, book in seconds,
+              From casual rallies to organized open play — discover courts near you, book in seconds,
               and join thousands of players hitting the court every day.
             </p>
           </div>
@@ -76,7 +76,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Club Owner CTA */}
+      {/* Owner CTA */}
       <OwnerCtaSection />
     </div>
   );

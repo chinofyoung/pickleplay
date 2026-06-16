@@ -3,7 +3,7 @@ import { Dumbbell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Court hero image, used as the card thumbnail across search & club pages and
+ * Court hero image, used as the card thumbnail across search & pickleball court pages and
  * as the banner on the booking page. Falls back to a branded gradient when a
  * court has no image_url yet.
  */

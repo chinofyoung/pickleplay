@@ -1,5 +1,5 @@
 import { requireRole } from "@/lib/auth/requireRole";
-import { createClub } from "@/app/owner/actions";
+import { createPickleballCourt } from "@/app/owner/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-export default async function NewClubPage() {
+export default async function NewPickleballCourtPage() {
   await requireRole(["owner"]);
 
   return (
@@ -22,36 +22,36 @@ export default async function NewClubPage() {
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Back link */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
-          <Link href="/owner/clubs">
+          <Link href="/owner/pickleball-courts">
             <ArrowLeft className="mr-1 size-4" />
-            Back to clubs
+            Back to pickleball courts
           </Link>
         </Button>
 
-        <h1 className="text-3xl text-foreground">Create a New Club</h1>
+        <h1 className="text-3xl text-foreground">Create a New Pickleball Court</h1>
 
         <Card>
           <CardHeader className="border-b pb-4">
-            <CardTitle>Club Details</CardTitle>
+            <CardTitle>Pickleball Court Details</CardTitle>
             <CardDescription>
-              Your club will start with a{" "}
+              Your pickleball court will start with a{" "}
               <span className="text-yellow-400">pending</span> status and become
               visible after admin approval.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="pt-4">
-            <form action={createClub} className="flex flex-col gap-5">
+            <form action={createPickleballCourt} className="flex flex-col gap-5">
               {/* Name */}
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="name">
-                  Club Name <span className="text-destructive">*</span>
+                  Pickleball Court Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="Ace Pickleball Club"
+                  placeholder="Ace Pickleball Court"
                   required
                   minLength={2}
                 />
@@ -64,7 +64,7 @@ export default async function NewClubPage() {
                   id="description"
                   name="description"
                   rows={3}
-                  placeholder="Tell players about your club..."
+                  placeholder="Tell players about your pickleball court..."
                   className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                 />
               </div>
@@ -120,13 +120,13 @@ export default async function NewClubPage() {
               </div>
 
               <Button type="submit" className="mt-2 w-full">
-                Create Club
+                Create Pickleball Court
               </Button>
             </form>
           </CardContent>
 
           <CardFooter className="text-xs text-muted-foreground">
-            Clubs are reviewed by our team before going live. You&apos;ll be
+            Pickleball courts are reviewed by our team before going live. You&apos;ll be
             notified once approved.
           </CardFooter>
         </Card>

@@ -2,7 +2,7 @@
  * verify-phase1.mjs
  * Verifies Phase 1 database migrations:
  * - Schema checks for owner_applications table, index, policies, functions
- * - clubs.status default = 'approved'
+ * - pickleball_courts.status default = 'approved'
  * - Trigger revert: new users get role='player' regardless of metadata
  * - RPC admin-guard: non-admin calling approve_owner_application gets 'not authorized'
  */
@@ -156,19 +156,19 @@ await dbClient.connect();
   }
 }
 
-// Check clubs.status default is 'approved'
+// Check pickleball_courts.status default is 'approved'
 {
   const result = await dbClient.query(`
     SELECT column_default
     FROM information_schema.columns
     WHERE table_schema = 'public'
-      AND table_name = 'clubs'
+      AND table_name = 'pickleball_courts'
       AND column_name = 'status';
   `);
   if (result.rows.length > 0 && result.rows[0].column_default && result.rows[0].column_default.includes('approved')) {
-    pass(`clubs.status default is 'approved' (value: ${result.rows[0].column_default})`);
+    pass(`pickleball_courts.status default is 'approved' (value: ${result.rows[0].column_default})`);
   } else {
-    fail(`clubs.status default is NOT 'approved' (value: ${result.rows[0]?.column_default})`);
+    fail(`pickleball_courts.status default is NOT 'approved' (value: ${result.rows[0]?.column_default})`);
   }
 }
 

@@ -86,7 +86,7 @@ const player2Email = `pp.bk.player2.${ts}@gmail.com`;
 let ownerId = null;
 let player1Id = null;
 let player2Id = null;
-let clubId = null;
+let pickleballCourtId = null;
 let courtId = null;
 let booking1Id = null;
 let booking2Id = null;
@@ -103,7 +103,7 @@ function ok(msg) {
 }
 
 // ─── Step 1: Setup via service-role ──────────────────────────────────────────
-console.log("\n[1/9] Setup: creating owner, club, court, payment QR + player1...");
+console.log("\n[1/9] Setup: creating owner, pickleball court, court, payment QR + player1...");
 
 // Create owner user
 {
@@ -117,27 +117,27 @@ console.log("\n[1/9] Setup: creating owner, club, court, payment QR + player1...
   ok(`owner created: ${ownerId}`);
 }
 
-// Sign in as owner to create club/court (owner RLS requires authenticated session)
+// Sign in as owner to create pickleball court/court (owner RLS requires authenticated session)
 const ownerClient = await signIn(ownerEmail, password);
 
-// Create club, then approve via service-role
+// Create pickleball court, then approve via service-role
 {
-  const { data: club, error } = await ownerClient.from("clubs").insert({
+  const { data: pickleballCourt, error } = await ownerClient.from("pickleball_courts").insert({
     owner_id: ownerId,
-    name: `BK Test Club ${ts}`,
+    name: `BK Test Court ${ts}`,
     city: "Cebu City",
     amenities: [],
   }).select("id").single();
-  if (error || !club) { fail(`create club: ${error?.message}`); process.exit(1); }
-  clubId = club.id;
-  await admin.from("clubs").update({ status: "approved" }).eq("id", clubId);
-  ok(`club created + approved: ${clubId}`);
+  if (error || !pickleballCourt) { fail(`create pickleball court: ${error?.message}`); process.exit(1); }
+  pickleballCourtId = pickleballCourt.id;
+  await admin.from("pickleball_courts").update({ status: "approved" }).eq("id", pickleballCourtId);
+  ok(`pickleball court created + approved: ${pickleballCourtId}`);
 }
 
 // Create court (open_hour: 6, close_hour: 21, hourly_rate: 260)
 {
   const { data: court, error } = await ownerClient.from("courts").insert({
-    club_id: clubId,
+    pickleball_court_id: pickleballCourtId,
     name: "Verify Court A",
     hourly_rate: 260,
     open_hour: 6,
@@ -150,9 +150,9 @@ const ownerClient = await signIn(ownerEmail, password);
 
 // Insert payment QR row (service-role, no actual file needed)
 {
-  const fakePath = `${clubId}/gcash-verify.png`;
-  const { error } = await admin.from("club_payment_qrs").insert({
-    club_id: clubId, label: "gcash", image_path: fakePath,
+  const fakePath = `${pickleballCourtId}/gcash-verify.png`;
+  const { error } = await admin.from("pickleball_court_payment_qrs").insert({
+    pickleball_court_id: pickleballCourtId, label: "gcash", image_path: fakePath,
   });
   if (error) fail(`insert QR row: ${error.message}`);
   else ok(`payment QR row inserted`);

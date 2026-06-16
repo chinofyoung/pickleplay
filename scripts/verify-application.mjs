@@ -87,7 +87,7 @@ console.log(`  OK — player 1 signed in`);
 console.log("\n[2/6] Inserting first owner application as player 1 (should succeed)...");
 const { data: app1, error: appErr1 } = await anonClient1.from("owner_applications").insert({
   user_id: player1Id,
-  business_name: "Test Club One",
+  business_name: "Test Court One",
   contact_number: "+63 917 000 0001",
   city: "Manila",
 }).select().single();
@@ -103,7 +103,7 @@ if (appErr1) {
 console.log("\n[3/6] Inserting second owner application for same player 1 (should be blocked by partial unique index)...");
 const { data: app2, error: appErr2 } = await anonClient1.from("owner_applications").insert({
   user_id: player1Id,
-  business_name: "Test Club Two",
+  business_name: "Test Court Two",
   contact_number: "+63 917 000 0002",
   city: "Cebu",
 }).select().single();
@@ -153,7 +153,7 @@ if (createErr2 || !adminUser2.user) {
     console.log("\n[5/6] Player 2 attempts to insert with player 1's user_id (should be blocked by RLS)...");
     const { data: rlsApp, error: rlsErr } = await anonClient2.from("owner_applications").insert({
       user_id: player1Id,  // deliberately wrong user_id
-      business_name: "Spoofed Club",
+      business_name: "Spoofed Court",
       contact_number: "+63 917 999 9999",
       city: "Davao",
     }).select().single();

@@ -16,13 +16,13 @@
 
 ## File Structure
 ```
-lib/booking/search.ts                 # NEW pure isCourtAvailable
-tests/unit/search.test.ts             # NEW
-components/search/CourtSearchBar.tsx   # NEW client form (hero + results)
-app/(public)/search/page.tsx          # NEW results page
-app/(public)/page.tsx                 # MODIFY hero to embed CourtSearchBar
-app/(public)/clubs/[id]/book/[courtId]/page.tsx   # MODIFY read start/end
-app/(public)/clubs/[id]/book/[courtId]/SlotPicker.tsx  # MODIFY pre-select start/end
+lib/booking/search.ts                                            # NEW pure isCourtAvailable
+tests/unit/search.test.ts                                        # NEW
+components/search/CourtSearchBar.tsx                             # NEW client form (hero + results)
+app/(public)/search/page.tsx                                     # NEW results page
+app/(public)/page.tsx                                            # MODIFY hero to embed CourtSearchBar
+app/(public)/pickleball-courts/[id]/book/[courtId]/page.tsx      # MODIFY read start/end
+app/(public)/pickleball-courts/[id]/book/[courtId]/SlotPicker.tsx # MODIFY pre-select start/end
 ```
 
 ---
@@ -212,8 +212,8 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
   const supabase = await createClient();
   const { data: courts } = await supabase
     .from("courts")
-    .select("id, name, hourly_rate, open_hour, close_hour, clubs!inner(id, name, city, area, amenities, status)")
-    .eq("clubs.status", "approved");
+    .select("id, name, hourly_rate, open_hour, close_hour, pickleball_courts!inner(id, name, city, area, amenities, status)")
+    .eq("pickleball_courts.status", "approved");
 
   const list = (courts ?? []) as any[];
   const courtIds = list.map(c => c.id);
@@ -232,14 +232,14 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
   let available = list.filter(c =>
     isCourtAvailable({ openHour: c.open_hour, closeHour: c.close_hour }, byCourt.get(c.id) ?? [], { startHour: start, endHour: end }, now)
   );
-  if (city) available = available.filter(c => c.clubs.city === city);
+  if (city) available = available.filter(c => c.pickleball_courts.city === city);
   if (maxPrice) available = available.filter(c => Number(c.hourly_rate) <= Number(maxPrice));
-  if (amenity) available = available.filter(c => (c.clubs.amenities ?? []).includes(amenity));
+  if (amenity) available = available.filter(c => (c.pickleball_courts.amenities ?? []).includes(amenity));
 
   if (!available.length) {
     return (
       <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-8 text-center">
-        <p className="text-text-muted">No courts free for that window. Try a different time, or <Link href="/clubs" className="text-primary hover:underline">browse all clubs</Link>.</p>
+        <p className="text-text-muted">No courts free for that window. Try a different time, or <Link href="/pickleball-courts" className="text-primary hover:underline">browse all pickleball courts</Link>.</p>
       </div>
     );
   }
@@ -249,14 +249,14 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
       {available.map(c => (
         <Card key={c.id}>
           <CardHeader>
-            <CardTitle>{c.clubs.name} — {c.name}</CardTitle>
-            <p className="text-sm text-text-muted">{c.clubs.city}{c.clubs.area ? `, ${c.clubs.area}` : ""}</p>
+            <CardTitle>{c.pickleball_courts.name} — {c.name}</CardTitle>
+            <p className="text-sm text-text-muted">{c.pickleball_courts.city}{c.pickleball_courts.area ? `, ${c.pickleball_courts.area}` : ""}</p>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-text-muted">Open {c.open_hour}:00–{c.close_hour}:00</p>
             <p className="text-lg font-bold">₱{calcTotalPrice(Number(c.hourly_rate), start, end)} <span className="text-sm font-normal text-text-muted">for {end - start}h</span></p>
             <Button asChild className="w-full bg-cta hover:bg-cta/90 text-white">
-              <Link href={`/clubs/${c.clubs.id}/book/${c.id}?date=${date}&start=${start}&end=${end}`}>Book {String(start).padStart(2,"0")}:00–{String(end).padStart(2,"0")}:00</Link>
+              <Link href={`/pickleball-courts/${c.pickleball_courts.id}/book/${c.id}?date=${date}&start=${start}&end=${end}`}>Book {String(start).padStart(2,"0")}:00–{String(end).padStart(2,"0")}:00</Link>
             </Button>
           </CardContent>
         </Card>
@@ -265,9 +265,9 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
   );
 }
 ```
-(If the `clubs!inner(...)` embed + `.eq("clubs.status","approved")` filter doesn't resolve in Supabase, fall back to: select courts with embedded clubs, then filter `c.clubs.status === "approved"` in code. Verify which works via build/runtime.)
+(If the `pickleball_courts!inner(...)` embed + `.eq("pickleball_courts.status","approved")` filter doesn't resolve in Supabase, fall back to: select courts with embedded pickleball courts, then filter `c.pickleball_courts.status === "approved"` in code. Verify which works via build/runtime.)
 
-- [ ] **Step 2: Verify** — `scripts/verify-search.mjs` (keys from THIS project's `.env.local` only): seed (service-role + owner session) an approved club + court (open 6, close 21, ₱200) on a known date with a `confirmed` booking 9→11. Replicate the page's query+filter logic in the script (or import `isCourtAvailable`): assert the court IS returned for window 6→8 (free) and 11→13 (free), and is NOT returned for 8→10 or 10→12 (overlap 9→11). Clean up.
+- [ ] **Step 2: Verify** — `scripts/verify-search.mjs` (keys from THIS project's `.env.local` only): seed (service-role + owner session) an approved pickleball court + court (open 6, close 21, ₱200) on a known date with a `confirmed` booking 9→11. Replicate the page's query+filter logic in the script (or import `isCourtAvailable`): assert the court IS returned for window 6→8 (free) and 11→13 (free), and is NOT returned for 8→10 or 10→12 (overlap 9→11). Clean up.
 - [ ] **Step 3: Checkpoint** — `npm run typecheck` + `npm run build` pass; verify-search passes.
 
 ---
@@ -276,16 +276,16 @@ async function Results({ date, start, end, city, maxPrice, amenity }:
 
 ### Task 4.1: Pre-select start/end in the booking page
 
-**Files:** Modify `app/(public)/clubs/[id]/book/[courtId]/page.tsx`, `app/(public)/clubs/[id]/book/[courtId]/SlotPicker.tsx`
+**Files:** Modify `app/(public)/pickleball-courts/[id]/book/[courtId]/page.tsx`, `app/(public)/pickleball-courts/[id]/book/[courtId]/SlotPicker.tsx`
 
 - [ ] **Step 1: Booking page** — read `start`/`end` from `searchParams` alongside the existing `date`. When `date` is provided via query, use it as the selected date (instead of forcing today), and pass `initialStart`/`initialEnd` (parsed ints, only if valid and within the computed free hours) to `<SlotPicker>`. Keep the existing date GET form for changing the date.
 - [ ] **Step 2: SlotPicker** — extend props with `initialStart?: number; initialEnd?: number`. Initialize the start/end state from those props when present (clamped to the available `freeHours` / valid consecutive range); otherwise keep current defaults. The consecutive-range logic and submit-to-`createBooking` stay unchanged.
-- [ ] **Step 3: Verify** — manual/code check: navigating to `/clubs/<clubId>/book/<courtId>?date=<d>&start=8&end=10` pre-selects date=d, start=8, end=10 in the picker (when those hours are free). Confirm `npm run typecheck` + `npm run build` pass.
+- [ ] **Step 3: Verify** — manual/code check: navigating to `/pickleball-courts/<pickleballCourtId>/book/<courtId>?date=<d>&start=8&end=10` pre-selects date=d, start=8, end=10 in the picker (when those hours are free). Confirm `npm run typecheck` + `npm run build` pass.
 - [ ] **Step 4: Checkpoint** — full `npm run test` (12 unit tests incl. new search tests) + `npm run typecheck` + `npm run build` all green.
 
 ---
 
 ## Self-Review (completed during authoring)
-- **Spec coverage:** availability semantics + pure helper (1.1); hero search bar with date/start/end + PH-today min, whole-hour selects (2.1, 2.2); `/search` results with isCourtAvailable filter + city/price/amenity refine + prefilled search bar + empty state + price-for-window (3.1); Book → existing booking page pre-filled via `?date&start&end` (3.1 link + 4.1); `/clubs` browse untouched; reuses validateSlot/overlaps/calcTotalPrice/createBooking. All spec sections mapped.
+- **Spec coverage:** availability semantics + pure helper (1.1); hero search bar with date/start/end + PH-today min, whole-hour selects (2.1, 2.2); `/search` results with isCourtAvailable filter + city/price/amenity refine + prefilled search bar + empty state + price-for-window (3.1); Book → existing booking page pre-filled via `?date&start&end` (3.1 link + 4.1); `/pickleball-courts` browse untouched; reuses validateSlot/overlaps/calcTotalPrice/createBooking. All spec sections mapped.
 - **Placeholder scan:** none; code shown in every code step.
 - **Type consistency:** `isCourtAvailable(courtHours, bookings, window, now)` signature consistent across helper, tests, and the results page call; `CourtSearchBar` `defaults` prop shape (`date/start/end`) matches the page usage; query field names (`open_hour`, `close_hour`, `hourly_rate`, `expires_at`) match the schema and the booking-domain camelCase mapping used elsewhere.

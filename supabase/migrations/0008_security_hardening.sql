@@ -7,9 +7,9 @@ create policy profiles_self_update on profiles for update
 -- bookings_owner_update: add missing with check
 drop policy if exists bookings_owner_update on bookings;
 create policy bookings_owner_update on bookings for update using (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 ) with check (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 );
 
 -- H4: tighten storage write policies to enforce path ownership at the DB layer
@@ -30,15 +30,15 @@ create policy proofs_update on storage.objects for update using (
 drop policy if exists qrs_write on storage.objects;
 create policy qrs_write on storage.objects for insert with check (
   bucket_id = 'payment-qrs' and auth.uid() is not null and
-  exists(select 1 from clubs c where c.id::text = split_part(name,'/',1) and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id::text = split_part(name,'/',1) and pc.owner_id = auth.uid())
 );
 drop policy if exists qrs_update on storage.objects;
 create policy qrs_update on storage.objects for update using (
   bucket_id = 'payment-qrs' and
-  exists(select 1 from clubs c where c.id::text = split_part(name,'/',1) and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id::text = split_part(name,'/',1) and pc.owner_id = auth.uid())
 ) with check (
   bucket_id = 'payment-qrs' and
-  exists(select 1 from clubs c where c.id::text = split_part(name,'/',1) and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id::text = split_part(name,'/',1) and pc.owner_id = auth.uid())
 );
 
 -- M3: run the expiry function with definer rights and a fixed search_path

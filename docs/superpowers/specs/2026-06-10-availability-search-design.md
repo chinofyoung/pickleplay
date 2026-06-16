@@ -6,7 +6,7 @@
 
 ## Overview
 
-Add a hotel/flight-style court search: the player picks a **date + start time + end time** and sees **every available court** for that window across all approved clubs, then books. The search bar lives in the homepage hero. The existing club-browse page (`/clubs`) stays as a secondary "browse all venues" path.
+Add a hotel/flight-style court search: the player picks a **date + start time + end time** and sees **every available court** for that window across all approved pickleball courts, then books. The search bar lives in the homepage hero. The existing pickleball-court-browse page (`/pickleball-courts`) stays as a secondary "browse all venues" path.
 
 ## Goals
 - Prominent **Date · Start · End · Search** form in the hero.
@@ -15,7 +15,7 @@ Add a hotel/flight-style court search: the player picks a **date + start time + 
 
 ## Non-Goals
 - No change to the hourly-slot booking model (whole-hour times only).
-- No replacement of `/clubs` browse.
+- No replacement of `/pickleball-courts` browse.
 - No DB-side availability function yet (in-code filtering is fine for MVP; noted as a future optimization).
 
 ## Availability Semantics
@@ -40,19 +40,19 @@ The hero retains its badge, two-line headline, and subtext. Below the subtext, a
 ## Results Page `/search`
 Server component at `app/(public)/search/page.tsx`, reads `searchParams` `date`, `start`, `end`, plus optional `city`, `maxPrice`, `amenity`.
 - **Validation:** if `date`/`start`/`end` missing or `end <= start`, render the search prompt (the `CourtSearchBar`) with a hint — no results query.
-- **Query:** fetch courts whose club `status='approved'`, selecting court fields + club (`name`, `city`, `area`, `amenities`); fetch that date's bookings for those courts (`court_id, start_hour, end_hour, status, expires_at`).
-- **Filter (in code):** keep courts where `isCourtAvailable(...)` is true for the window. Then apply refine filters: `city` (eq on club city), `maxPrice` (court `hourly_rate <= maxPrice`), `amenity` (club amenities contains).
-- **Render:** a `CourtSearchBar` prefilled with the current params at the top; a grid of available-court cards — club name + city/area, court name, operating hours, **price for the window** = `calcTotalPrice(hourly_rate, start, end)`, and a **Book** button.
-- **Empty state:** "No courts free for that window — try a different time" + link to `/clubs` browse.
+- **Query:** fetch courts whose pickleball court `status='approved'`, selecting court fields + pickleball court (`name`, `city`, `area`, `amenities`); fetch that date's bookings for those courts (`court_id, start_hour, end_hour, status, expires_at`).
+- **Filter (in code):** keep courts where `isCourtAvailable(...)` is true for the window. Then apply refine filters: `city` (eq on pickleball court city), `maxPrice` (court `hourly_rate <= maxPrice`), `amenity` (pickleball court amenities contains).
+- **Render:** a `CourtSearchBar` prefilled with the current params at the top; a grid of available-court cards — pickleball court name + city/area, court name, operating hours, **price for the window** = `calcTotalPrice(hourly_rate, start, end)`, and a **Book** button.
+- **Empty state:** "No courts free for that window — try a different time" + link to `/pickleball-courts` browse.
 
 ## Book Action (confirm step)
 The **Book** button links to the existing court booking page **pre-filled**:
-`/clubs/[clubId]/book/[courtId]?date=<date>&start=<start>&end=<end>`.
+`/pickleball-courts/[pickleballCourtId]/book/[courtId]?date=<date>&start=<start>&end=<end>`.
 The booking page and its `SlotPicker` (client) are extended to read `start`/`end` from `searchParams` and pre-select them (within the court's free hours; user may still adjust). Confirming calls the existing `createBooking` server action, which remains the authoritative validation (operating hours, overlap, price, expiry, DB exclusion constraint). No new booking path.
 
 ## Reuse vs New
-- **Reused:** `validateSlot`, `overlaps`, `calcTotalPrice`, `freeHours`, `createBooking`, the booking page, `SlotPicker`, design components, `/clubs` browse.
-- **New:** `lib/booking/search.ts` (`isCourtAvailable` + tests); `app/(public)/search/page.tsx`; `components/search/CourtSearchBar.tsx`; `?start=&end=` pre-fill in `app/(public)/clubs/[id]/book/[courtId]/page.tsx` + `SlotPicker.tsx`; hero updated to embed `CourtSearchBar`.
+- **Reused:** `validateSlot`, `overlaps`, `calcTotalPrice`, `freeHours`, `createBooking`, the booking page, `SlotPicker`, design components, `/pickleball-courts` browse.
+- **New:** `lib/booking/search.ts` (`isCourtAvailable` + tests); `app/(public)/search/page.tsx`; `components/search/CourtSearchBar.tsx`; `?start=&end=` pre-fill in `app/(public)/pickleball-courts/[id]/book/[courtId]/page.tsx` + `SlotPicker.tsx`; hero updated to embed `CourtSearchBar`.
 
 ## Edge Cases & Errors
 - Past date blocked (min = today, `Asia/Manila`).
@@ -62,5 +62,5 @@ The booking page and its `SlotPicker` (client) are extended to read `start`/`end
 
 ## Testing
 - **Unit (TDD):** `isCourtAvailable` — free→true; overlapping active booking→false; window outside operating hours→false; expired-pending ignored→true; rejected/cancelled ignored→true.
-- **Integration:** seed an approved club with a court and a confirmed booking; `/search` query logic returns the court for a free window and excludes it for an overlapping window; pre-filled booking page creates a booking via `createBooking`.
+- **Integration:** seed an approved pickleball court with a court and a confirmed booking; `/search` query logic returns the court for a free window and excludes it for an overlapping window; pre-filled booking page creates a booking via `createBooking`.
 - Build + typecheck green; pages use existing RaceDay components.

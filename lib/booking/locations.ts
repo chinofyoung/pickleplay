@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Distinct cities of approved clubs, sorted alphabetically.
+ * Distinct cities of approved pickleball courts, sorted alphabetically.
  * Powers the "Location" filter in the court search bar.
  */
 export async function getLocations(): Promise<string[]> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("clubs")
+    .from("pickleball_courts")
     .select("city")
     .eq("status", "approved");
 

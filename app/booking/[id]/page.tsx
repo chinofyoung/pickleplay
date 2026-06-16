@@ -48,11 +48,11 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
 
   const supabase = await createClient();
 
-  // Fetch booking with court + club
+  // Fetch booking with court + pickleball court
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, date, start_hour, end_hour, total_price, status, payment_proof_path, rejection_reason, expires_at, player_id, courts!inner(id, name, club_id, clubs!inner(id, name))"
+      "id, date, start_hour, end_hour, total_price, status, payment_proof_path, rejection_reason, expires_at, player_id, courts!inner(id, name, pickleball_court_id, pickleball_courts!inner(id, name))"
     )
     .eq("id", bookingId)
     .single();
@@ -60,14 +60,14 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
   if (!booking) notFound();
 
   const court = Array.isArray(booking.courts) ? booking.courts[0] : booking.courts;
-  const club = court ? (Array.isArray(court.clubs) ? court.clubs[0] : court.clubs) : null;
+  const pickleballCourt = court ? (Array.isArray(court.pickleball_courts) ? court.pickleball_courts[0] : court.pickleball_courts) : null;
 
-  // Fetch club payment QRs
-  const clubId = club?.id ?? court?.club_id;
+  // Fetch pickleball court payment QRs
+  const pickleballCourtId = pickleballCourt?.id ?? court?.pickleball_court_id;
   const { data: qrs } = await supabase
-    .from("club_payment_qrs")
+    .from("pickleball_court_payment_qrs")
     .select("id, label, image_path")
-    .eq("club_id", clubId);
+    .eq("pickleball_court_id", pickleballCourtId);
 
   const qrsWithUrls = (qrs ?? []).map((qr) => {
     const { data } = supabase.storage.from("payment-qrs").getPublicUrl(qr.image_path);
@@ -113,8 +113,8 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
               <span className="text-foreground font-medium">{court?.name}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Club</span>
-              <span className="text-foreground">{club?.name}</span>
+              <span className="text-muted-foreground">Pickleball Court</span>
+              <span className="text-foreground">{pickleballCourt?.name}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground flex items-center gap-1.5">

@@ -49,13 +49,13 @@ export default async function OwnerBookingsPage() {
   const supabase = await createClient();
 
   // RLS (bookings_owner_read) scopes reads to the owner's courts;
-  // we also join courts→clubs for display.
+  // we also join courts→pickleball_courts for display.
   const { data: rawBookings, error } = await supabase
     .from("bookings")
     .select(
       `id, date, start_hour, end_hour, total_price, status,
        payment_proof_path, rejection_reason, player_id,
-       court:court_id ( id, name, club:club_id ( id, name ) ),
+       court:court_id ( id, name, pickleball_court:pickleball_court_id ( id, name ) ),
        profile:player_id ( full_name )`
     )
     .order("date", { ascending: false })
@@ -73,19 +73,19 @@ export default async function OwnerBookingsPage() {
     );
   }
 
-  // Extra safety: restrict to owner's clubs in case RLS is unexpectedly broad
-  const { data: ownerClubs } = await supabase
-    .from("clubs")
+  // Extra safety: restrict to owner's pickleball courts in case RLS is unexpectedly broad
+  const { data: ownerPickleballCourts } = await supabase
+    .from("pickleball_courts")
     .select("id")
     .eq("owner_id", user.id);
 
-  const ownerClubIds = new Set((ownerClubs ?? []).map((c) => c.id));
+  const ownerPickleballCourtIds = new Set((ownerPickleballCourts ?? []).map((c) => c.id));
 
   // Normalise rows
   const bookings = (rawBookings ?? [])
     .map((b) => {
       const court = first(b.court as Parameters<typeof first>[0]);
-      const club = court ? first((court as { club: unknown }).club as Parameters<typeof first>[0]) : null;
+      const pickleballCourt = court ? first((court as { pickleball_court: unknown }).pickleball_court as Parameters<typeof first>[0]) : null;
       const profile = first(b.profile as Parameters<typeof first>[0]);
       return {
         id: b.id as string,
@@ -98,12 +98,12 @@ export default async function OwnerBookingsPage() {
         rejection_reason: b.rejection_reason as string | null,
         player_id: b.player_id as string,
         court_name: (court as { name?: string } | null)?.name ?? null,
-        club_id: (club as { id?: string } | null)?.id ?? null,
-        club_name: (club as { name?: string } | null)?.name ?? null,
+        pickleball_court_id: (pickleballCourt as { id?: string } | null)?.id ?? null,
+        pickleball_court_name: (pickleballCourt as { name?: string } | null)?.name ?? null,
         player_name: (profile as { full_name?: string | null } | null)?.full_name ?? null,
       };
     })
-    .filter((b) => b.club_id == null || ownerClubIds.has(b.club_id));
+    .filter((b) => b.pickleball_court_id == null || ownerPickleballCourtIds.has(b.pickleball_court_id));
 
   const proofSubmitted = bookings.filter((b) => b.status === "proof_submitted");
   const otherBookings = bookings.filter((b) => b.status !== "proof_submitted");
@@ -169,13 +169,13 @@ export default async function OwnerBookingsPage() {
                         <p className="font-medium text-foreground">{playerName}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Court / Club</span>
+                        <span className="text-muted-foreground">Court / Pickleball Court</span>
                         <p className="font-medium text-foreground">
                           {bk.court_name ?? "—"}
-                          {bk.club_name && (
+                          {bk.pickleball_court_name && (
                             <span className="text-muted-foreground">
                               {" "}
-                              · {bk.club_name}
+                              · {bk.pickleball_court_name}
                             </span>
                           )}
                         </p>
@@ -291,7 +291,7 @@ export default async function OwnerBookingsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Player</TableHead>
-                    <TableHead>Court / Club</TableHead>
+                    <TableHead>Court / Pickleball Court</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Time</TableHead>
                     <TableHead>Total</TableHead>
@@ -307,8 +307,8 @@ export default async function OwnerBookingsPage() {
                         <TableCell className="font-medium">{playerName}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {bk.court_name ?? "—"}
-                          {bk.club_name && (
-                            <span className="ml-1 text-xs">· {bk.club_name}</span>
+                          {bk.pickleball_court_name && (
+                            <span className="ml-1 text-xs">· {bk.pickleball_court_name}</span>
                           )}
                         </TableCell>
                         <TableCell>{bk.date}</TableCell>

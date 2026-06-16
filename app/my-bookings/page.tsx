@@ -42,7 +42,7 @@ export default async function MyBookingsPage() {
   const { data: bookings } = await supabase
     .from("bookings")
     .select(
-      "id, date, start_hour, end_hour, total_price, status, courts!inner(id, name, clubs!inner(id, name))"
+      "id, date, start_hour, end_hour, total_price, status, courts!inner(id, name, pickleball_courts!inner(id, name))"
     )
     .eq("player_id", user.id)
     .order("date", { ascending: false });
@@ -73,7 +73,7 @@ export default async function MyBookingsPage() {
                 </p>
               </div>
               <Button variant="primary" asChild>
-                <Link href="/clubs">Browse clubs</Link>
+                <Link href="/pickleball-courts">Browse pickleball courts</Link>
               </Button>
             </CardContent>
           </Card>
@@ -81,7 +81,7 @@ export default async function MyBookingsPage() {
           <div className="space-y-3">
             {items.map((booking) => {
               const court = Array.isArray(booking.courts) ? booking.courts[0] : booking.courts;
-              const club = court ? (Array.isArray(court.clubs) ? court.clubs[0] : court.clubs) : null;
+              const pickleballCourt = court ? (Array.isArray(court.pickleball_courts) ? court.pickleball_courts[0] : court.pickleball_courts) : null;
 
               return (
                 <Card key={booking.id} className="hover:ring-primary/30 transition-all">
@@ -94,7 +94,7 @@ export default async function MyBookingsPage() {
                           </span>
                           <span className="text-muted-foreground text-xs">·</span>
                           <span className="text-muted-foreground text-xs truncate">
-                            {club?.name}
+                            {pickleballCourt?.name}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
@@ -133,7 +133,7 @@ export default async function MyBookingsPage() {
         {items.length > 0 && (
           <div className="text-center">
             <Button variant="outline" asChild>
-              <Link href="/clubs">Book another court</Link>
+              <Link href="/pickleball-courts">Book another court</Link>
             </Button>
           </div>
         )}

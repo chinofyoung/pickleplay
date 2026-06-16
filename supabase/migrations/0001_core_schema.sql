@@ -8,8 +8,8 @@ create table profiles (
   created_at timestamptz default now()
 );
 
-create type club_status as enum ('pending','approved','rejected');
-create table clubs (
+create type pickleball_court_status as enum ('pending','approved','rejected');
+create table pickleball_courts (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references profiles(id) on delete cascade,
   name text not null,
@@ -18,20 +18,20 @@ create table clubs (
   area text,
   address text,
   amenities text[] default '{}',
-  status club_status not null default 'pending',
+  status pickleball_court_status not null default 'pending',
   created_at timestamptz default now()
 );
 
-create table club_payment_qrs (
+create table pickleball_court_payment_qrs (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references clubs(id) on delete cascade,
+  pickleball_court_id uuid not null references pickleball_courts(id) on delete cascade,
   label text not null,
   image_path text not null
 );
 
 create table courts (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references clubs(id) on delete cascade,
+  pickleball_court_id uuid not null references pickleball_courts(id) on delete cascade,
   name text not null,
   hourly_rate numeric(10,2) not null check (hourly_rate >= 0),
   open_hour int not null check (open_hour between 0 and 23),

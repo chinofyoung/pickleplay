@@ -1,9 +1,9 @@
 /**
  * Seed script — courts + simulated schedules (bookings).
  *
- * Creates a handful of approved clubs across several PH cities, courts under
+ * Creates a handful of approved pickleball courts across several PH cities, courts under
  * each, and a realistic spread of bookings over the next ~10 days. Idempotent:
- * re-running wipes the previously-seeded clubs (cascade removes their courts &
+ * re-running wipes the previously-seeded pickleball courts (cascade removes their courts &
  * bookings) and rebuilds, so the dataset stays stable.
  *
  *   node scripts/seed.mjs
@@ -74,8 +74,8 @@ const PLAYERS = [
   { email: "player.finn.seed@pickleplay.test", name: "Finn Aquino" },
 ];
 
-// owner index → clubs
-const CLUBS = [
+// owner index → pickleball courts
+const PICKLEBALL_COURTS = [
   { owner: 0, name: "Cebu Pickle Hub", city: "Cebu City", area: "Lahug", address: "Salinas Dr, Lahug",
     description: "Premier indoor pickleball courts in the heart of Cebu.",
     amenities: ["Parking", "Showers", "Pro Shop", "Lighting", "Air-conditioned"],
@@ -199,39 +199,39 @@ async function main() {
   }
   console.log(`  ${ownerIds.length} owners, ${playerIds.length} players ready.\n`);
 
-  // 2. Wipe previously-seeded clubs for these owners (cascade → courts, bookings)
-  const del = await client.query("delete from clubs where owner_id = any($1::uuid[])", [ownerIds]);
-  console.log(`Removed ${del.rowCount} previously-seeded club(s) (cascade).\n`);
+  // 2. Wipe previously-seeded pickleball courts for these owners (cascade → courts, bookings)
+  const del = await client.query("delete from pickleball_courts where owner_id = any($1::uuid[])", [ownerIds]);
+  console.log(`Removed ${del.rowCount} previously-seeded pickleball court(s) (cascade).\n`);
 
-  // 3. Clubs + courts
-  const totalCourts = CLUBS.reduce((n, c) => n + c.courts.length, 0);
+  // 3. Pickleball courts + courts
+  const totalCourts = PICKLEBALL_COURTS.reduce((n, c) => n + c.courts.length, 0);
   if (COURT_IMAGES.length < totalCourts) {
     console.error(`Need ${totalCourts} unique court images but only have ${COURT_IMAGES.length}.`);
     await client.end();
     process.exit(1);
   }
-  console.log("Inserting clubs & courts…");
+  console.log("Inserting pickleball courts & courts…");
   const courtRows = []; // { id, open, close, rate }
   let courtCount = 0;
-  for (const c of CLUBS) {
+  for (const c of PICKLEBALL_COURTS) {
     const { rows } = await client.query(
-      `insert into clubs (owner_id, name, description, city, area, address, amenities, status)
+      `insert into pickleball_courts (owner_id, name, description, city, area, address, amenities, status)
        values ($1,$2,$3,$4,$5,$6,$7,'approved') returning id`,
       [ownerIds[c.owner], c.name, c.description, c.city, c.area, c.address, c.amenities]
     );
-    const clubId = rows[0].id;
+    const pickleballCourtId = rows[0].id;
     for (const ct of c.courts) {
       const image = COURT_IMAGES[courtCount]; // unique per court (guarded below)
       const r = await client.query(
-        `insert into courts (club_id, name, hourly_rate, open_hour, close_hour, image_url)
+        `insert into courts (pickleball_court_id, name, hourly_rate, open_hour, close_hour, image_url)
          values ($1,$2,$3,$4,$5,$6) returning id`,
-        [clubId, ct.name, ct.rate, ct.open, ct.close, image]
+        [pickleballCourtId, ct.name, ct.rate, ct.open, ct.close, image]
       );
       courtRows.push({ id: r.rows[0].id, open: ct.open, close: ct.close, rate: ct.rate });
       courtCount++;
     }
   }
-  console.log(`  ${CLUBS.length} clubs, ${courtCount} courts.\n`);
+  console.log(`  ${PICKLEBALL_COURTS.length} pickleball courts, ${courtCount} courts.\n`);
 
   // 4. Simulated schedules (bookings) over the next 10 days
   console.log("Generating simulated bookings…");

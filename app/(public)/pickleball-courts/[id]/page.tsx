@@ -14,80 +14,80 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Clock, QrCode } from "lucide-react";
 
-interface ClubProfilePageProps {
+interface PickleballCourtProfilePageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function ClubProfilePage({ params }: ClubProfilePageProps) {
+export default async function PickleballCourtProfilePage({ params }: PickleballCourtProfilePageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // Fetch approved club with courts and payment QRs
-  const { data: club } = await supabase
-    .from("clubs")
+  // Fetch approved pickleball court with courts and payment QRs
+  const { data: pickleballCourt } = await supabase
+    .from("pickleball_courts")
     .select(
-      "id, name, description, city, area, address, amenities, status, courts(id, name, hourly_rate, open_hour, close_hour, image_url), club_payment_qrs(id, label, image_path)"
+      "id, name, description, city, area, address, amenities, status, courts(id, name, hourly_rate, open_hour, close_hour, image_url), pickleball_court_payment_qrs(id, label, image_path)"
     )
     .eq("id", id)
     .eq("status", "approved")
     .single();
 
-  if (!club) notFound();
+  if (!pickleballCourt) notFound();
 
   // Resolve public URLs for QR images
-  const qrsWithUrls = (club.club_payment_qrs ?? []).map((qr) => {
+  const qrsWithUrls = (pickleballCourt.pickleball_court_payment_qrs ?? []).map((qr) => {
     const { data } = supabase.storage
       .from("payment-qrs")
       .getPublicUrl(qr.image_path);
     return { ...qr, publicUrl: data.publicUrl };
   });
 
-  const courts = club.courts ?? [];
+  const courts = pickleballCourt.courts ?? [];
 
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-10 space-y-8">
         {/* Back link */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
-          <Link href="/clubs">
+          <Link href="/pickleball-courts">
             <ArrowLeft className="mr-1 size-4" />
-            Back to clubs
+            Back to pickleball courts
           </Link>
         </Button>
 
-        {/* Club header */}
+        {/* Pickleball court header */}
         <div className="space-y-2">
           <h1 className="font-heading text-4xl md:text-5xl font-bold uppercase tracking-wide text-white">
-            {club.name}
+            {pickleballCourt.name}
           </h1>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <MapPin className="size-4 shrink-0 text-primary" />
-            <span>{[club.area, club.city, club.address].filter(Boolean).join(" · ")}</span>
+            <span>{[pickleballCourt.area, pickleballCourt.city, pickleballCourt.address].filter(Boolean).join(" · ")}</span>
           </div>
           <Badge variant="success">Approved</Badge>
         </div>
 
         {/* Description */}
-        {club.description && (
+        {pickleballCourt.description && (
           <Card>
             <CardHeader className="border-b pb-4">
               <CardTitle>About</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 text-sm text-muted-foreground leading-relaxed">
-              {club.description}
+              {pickleballCourt.description}
             </CardContent>
           </Card>
         )}
 
         {/* Amenities */}
-        {club.amenities && club.amenities.length > 0 && (
+        {pickleballCourt.amenities && pickleballCourt.amenities.length > 0 && (
           <Card>
             <CardHeader className="border-b pb-4">
               <CardTitle>Amenities</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="flex flex-wrap gap-2">
-                {(club.amenities as string[]).map((amenity) => (
+                {(pickleballCourt.amenities as string[]).map((amenity) => (
                   <Badge key={amenity} variant="outline" className="capitalize">
                     {amenity}
                   </Badge>
@@ -112,7 +112,7 @@ export default async function ClubProfilePage({ params }: ClubProfilePageProps) 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {courts.map((court) => (
                   <Card key={court.id} size="sm" className="pt-0">
-                    <CourtThumb src={court.image_url} alt={`${club.name} — ${court.name}`} />
+                    <CourtThumb src={court.image_url} alt={`${pickleballCourt.name} — ${court.name}`} />
                     <CardContent className="space-y-2">
                       <div className="font-medium text-foreground">{court.name}</div>
                       <div className="text-primary font-medium">
@@ -123,7 +123,7 @@ export default async function ClubProfilePage({ params }: ClubProfilePageProps) 
                         {court.open_hour}:00 – {court.close_hour}:00
                       </div>
                       <Button size="sm" variant="primary" asChild className="w-full">
-                        <Link href={`/clubs/${club.id}/book/${court.id}`}>Book</Link>
+                        <Link href={`/pickleball-courts/${pickleballCourt.id}/book/${court.id}`}>Book</Link>
                       </Button>
                     </CardContent>
                   </Card>

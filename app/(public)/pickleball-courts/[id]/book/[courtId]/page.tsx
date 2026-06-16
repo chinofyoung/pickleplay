@@ -29,7 +29,7 @@ function describeDay(iso: string) {
 }
 
 export default async function BookCourtPage({ params, searchParams }: BookPageProps) {
-  const { id: clubId, courtId } = await params;
+  const { id: pickleballCourtId, courtId } = await params;
   const { date: selectedDate, start: startParam, end: endParam } = await searchParams;
 
   const parsedStart = startParam !== undefined ? parseInt(startParam, 10) : NaN;
@@ -39,18 +39,18 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
 
   const supabase = await createClient();
 
-  // Fetch court and verify it belongs to this approved club
+  // Fetch court and verify it belongs to this approved pickleball court venue
   const { data: court } = await supabase
     .from("courts")
-    .select("id, name, hourly_rate, open_hour, close_hour, image_url, clubs!inner(id, name, status)")
+    .select("id, name, hourly_rate, open_hour, close_hour, image_url, pickleball_courts!inner(id, name, status)")
     .eq("id", courtId)
-    .eq("clubs.id", clubId)
-    .eq("clubs.status", "approved")
+    .eq("pickleball_courts.id", pickleballCourtId)
+    .eq("pickleball_courts.status", "approved")
     .single();
 
   if (!court) notFound();
 
-  const club = Array.isArray(court.clubs) ? court.clubs[0] : court.clubs;
+  const pickleballCourt = Array.isArray(court.pickleball_courts) ? court.pickleball_courts[0] : court.pickleball_courts;
 
   // Today + current hour in Philippine time (Asia/Manila, UTC+8)
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -90,16 +90,16 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
       <div className="mx-auto max-w-7xl px-4 py-10 space-y-6">
         {/* Back link */}
         <Button variant="ghost" size="sm" asChild className="-ml-1">
-          <Link href={`/clubs/${clubId}`}>
+          <Link href={`/pickleball-courts/${pickleballCourtId}`}>
             <ArrowLeft className="mr-1 size-4" />
-            Back to {club?.name ?? "club"}
+            Back to {pickleballCourt?.name ?? "pickleball court"}
           </Link>
         </Button>
 
         {/* Hero image */}
         <CourtThumb
           src={court.image_url}
-          alt={`${club?.name} — ${court.name}`}
+          alt={`${pickleballCourt?.name} — ${court.name}`}
           sizes="(max-width: 1280px) 100vw, 1280px"
           priority
           className="aspect-[5/2] max-h-72 rounded-xl ring-1 ring-foreground/10"
@@ -111,7 +111,7 @@ export default async function BookCourtPage({ params, searchParams }: BookPagePr
             Book {court.name}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {club?.name} &middot;{" "}
+            {pickleballCourt?.name} &middot;{" "}
             <span className="text-primary font-medium">₱{hourlyRate.toFixed(0)}/hr</span>
           </p>
           <div className="flex items-center gap-1.5 text-muted-foreground text-sm">

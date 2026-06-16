@@ -6,7 +6,7 @@
 
 ## Overview
 
-Change how users become Club Owners. Instead of selecting "owner" at signup, **everyone signs up as a Player**, gets a signed-in **dashboard**, and can **apply to become a Club Owner** from there. The **super admin** (the platform operator) reviews applications and approves/rejects them. Approving the owner is the single vetting gate — once approved, that owner's clubs go live immediately (no separate per-club approval).
+Change how users become Owners. Instead of selecting "owner" at signup, **everyone signs up as a Player**, gets a signed-in **dashboard**, and can **apply to become an Owner** from there. The **super admin** (the platform operator) reviews applications and approves/rejects them. Approving the owner is the single vetting gate — once approved, that owner's pickleball courts go live immediately (no separate per-pickleball-court approval).
 
 Three roles in `profiles.role`:
 - **player** — default for every new account.
@@ -17,18 +17,18 @@ Three roles in `profiles.role`:
 - Self-service signup creates a Player; no role choice at signup.
 - A role-aware `/dashboard` hub for all signed-in users.
 - Players apply to be owners via a form; super admin approves/rejects (with reason); rejected users may re-apply.
-- Approved owners create clubs that are live immediately.
+- Approved owners create pickleball courts that are live immediately.
 
 ## Non-Goals
 - No change to the booking/payment-proof flow.
-- No per-club approval (removed — owner vetting replaces it).
+- No per-pickleball-court approval (removed — owner vetting replaces it).
 - No email notifications (in-app status only, consistent with the MVP).
 
 ## Single-Gate Approval Model
 - New users → `player`.
 - Player submits an owner application → `pending`.
 - Super admin **approves** → applicant's `profiles.role` becomes `owner`; or **rejects** (with `rejection_reason`); applicant may submit a new application after rejection.
-- Owner-created clubs default to `clubs.status = 'approved'`. The `clubs.status` column is retained so an admin can later suspend a club (set to `rejected`) without a schema change. Discovery continues to filter `status = 'approved'`.
+- Owner-created pickleball courts default to `pickleball_courts.status = 'approved'`. The `pickleball_courts.status` column is retained so an admin can later suspend a pickleball court (set to `rejected`) without a schema change. Discovery continues to filter `status = 'approved'`.
 
 ## Data Model
 
@@ -46,8 +46,8 @@ Three roles in `profiles.role`:
 - `reviewed_at` timestamptz
 - Partial unique index on `(user_id)` where `status = 'pending'` — at most one pending application per user.
 
-### `clubs`
-- `status` default changes from `pending` to `approved` (owner-created clubs are live immediately). Column and enum retained.
+### `pickleball_courts`
+- `status` default changes from `pending` to `approved` (owner-created pickleball courts are live immediately). Column and enum retained.
 
 ### `profiles`
 - Unchanged shape. `role` continues to be frozen against self-update (security fix already in place). Role changes happen only via the admin approval path below.
@@ -68,28 +68,28 @@ Both raise an exception if the caller is not an admin. The admin UI calls these 
 
 ## Dashboard (`/dashboard`, role-aware)
 A single signed-in hub (requires auth). Content adapts to `profiles.role`:
-- **Player**: profile summary; "My Bookings" shortcut; an **Apply as Club Owner** card that shows either (a) the application form, (b) "Application pending review", or (c) "Rejected — <reason>" with a re-apply action, depending on their latest application.
-- **Owner**: the player content, plus **My Clubs** (manage clubs/courts/QRs — reuses `/owner/clubs`) and **Booking Requests** (reuses `/owner/bookings`).
-- **Super admin**: **Owner Applications** review queue (approve/reject with reason) — replaces the old per-club approval screen — plus oversight links.
+- **Player**: profile summary; "My Bookings" shortcut; an **Apply as Owner** card that shows either (a) the application form, (b) "Application pending review", or (c) "Rejected — <reason>" with a re-apply action, depending on their latest application.
+- **Owner**: the player content, plus **My Pickleball Courts** (manage pickleball courts/courts/QRs — reuses `/owner/pickleball-courts`) and **Booking Requests** (reuses `/owner/bookings`).
+- **Super admin**: **Owner Applications** review queue (approve/reject with reason) — replaces the old per-pickleball-court approval screen — plus oversight links.
 
 ## Application & Review Flow
-1. Player → `/dashboard` → "Apply as Club Owner" → form: business_name, contact_number, city, area, message → submit → application `pending`.
+1. Player → `/dashboard` → "Apply as Owner" → form: business_name, contact_number, city, area, message → submit → application `pending`.
 2. Super admin → `/admin/applications` → sees pending applications with applicant details → **Approve** (role → owner) or **Reject** (reason).
-3. Approved user is now an owner: their dashboard shows My Clubs; clubs they create are live (`approved`) immediately.
+3. Approved user is now an owner: their dashboard shows My Pickleball Courts; pickleball courts they create are live (`approved`) immediately.
 4. Rejected user sees the reason on their dashboard and can submit a new application.
 
 ## Changes to Existing Code
 - **Signup** (`app/(auth)/actions.ts`): remove the `role` option; always create a player. Pass only `full_name` in metadata.
 - **Signup trigger** (new migration): revert `handle_new_user` to NOT read role from metadata (everyone → `player`); keep the `full_name` coalesce fallback.
-- **Register page**: remove the "I'm a club owner" selector.
-- **Admin**: replace `/admin/clubs` (per-club approval) with `/admin/applications` (owner-application review). `setClubStatus` retained only for optional club suspension (not in the default flow).
-- **Clubs**: default `status='approved'`; `createClub` no longer needs admin approval.
+- **Register page**: remove the "I'm a pickleball court owner" selector.
+- **Admin**: replace `/admin/pickleball-courts` (per-pickleball-court approval) with `/admin/applications` (owner-application review). `setPickleballCourtStatus` retained only for optional pickleball court suspension (not in the default flow).
+- **Pickleball Courts**: default `status='approved'`; `createPickleballCourt` no longer needs admin approval.
 - **Navbar**: add a **Dashboard** link for signed-in users; Admin link points to `/admin/applications`.
 - **Discovery**: unchanged (`status='approved'` filter).
 
 ## Migrations (new)
 - `0010_owner_applications.sql`: `application_status` enum; `owner_applications` table + partial unique index; RLS policies; `approve_owner_application` / `reject_owner_application` SECURITY DEFINER functions.
-- `0011_clubs_default_approved.sql`: `alter table clubs alter column status set default 'approved';`
+- `0011_pickleball_courts_default_approved.sql`: `alter table pickleball_courts alter column status set default 'approved';`
 - `0012_signup_role_revert.sql`: `create or replace function handle_new_user()` without role-from-metadata (player only), keeping the full_name coalesce.
 - Update `_combined.sql`.
 
@@ -99,5 +99,5 @@ A single signed-in hub (requires auth). Content adapts to `profiles.role`:
   - Player cannot approve their own application / cannot self-set `role='owner'` (RPC requires admin; direct profile role update blocked).
   - Admin `approve_owner_application` flips applicant role to `owner`; `reject_owner_application` sets reason and leaves role unchanged.
   - Rejected applicant can submit a new application; the partial unique index blocks two simultaneous `pending` apps.
-  - Approved owner can create a club that defaults to `approved` and appears in public discovery.
+  - Approved owner can create a pickleball court that defaults to `approved` and appears in public discovery.
 - Build + typecheck green; pages use the existing RaceDay design components.

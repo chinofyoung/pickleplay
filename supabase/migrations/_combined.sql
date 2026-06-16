@@ -10,8 +10,8 @@ create table profiles (
   created_at timestamptz default now()
 );
 
-create type club_status as enum ('pending','approved','rejected');
-create table clubs (
+create type pickleball_court_status as enum ('pending','approved','rejected');
+create table pickleball_courts (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references profiles(id) on delete cascade,
   name text not null,
@@ -20,20 +20,20 @@ create table clubs (
   area text,
   address text,
   amenities text[] default '{}',
-  status club_status not null default 'pending',
+  status pickleball_court_status not null default 'pending',
   created_at timestamptz default now()
 );
 
-create table club_payment_qrs (
+create table pickleball_court_payment_qrs (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references clubs(id) on delete cascade,
+  pickleball_court_id uuid not null references pickleball_courts(id) on delete cascade,
   label text not null,
   image_path text not null
 );
 
 create table courts (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references clubs(id) on delete cascade,
+  pickleball_court_id uuid not null references pickleball_courts(id) on delete cascade,
   name text not null,
   hourly_rate numeric(10,2) not null check (hourly_rate >= 0),
   open_hour int not null check (open_hour between 0 and 23),
@@ -78,9 +78,9 @@ create trigger on_auth_user_created
 -- ===== 0003_rls =====
 
 alter table profiles enable row level security;
-alter table clubs enable row level security;
+alter table pickleball_courts enable row level security;
 alter table courts enable row level security;
-alter table club_payment_qrs enable row level security;
+alter table pickleball_court_payment_qrs enable row level security;
 alter table bookings enable row level security;
 
 create function is_admin() returns boolean language sql stable security definer
@@ -92,38 +92,38 @@ $$;
 create policy profiles_self_read on profiles for select using (id = auth.uid() or is_admin());
 create policy profiles_self_update on profiles for update using (id = auth.uid());
 
--- clubs
-create policy clubs_public_read on clubs for select using (status = 'approved' or owner_id = auth.uid() or is_admin());
-create policy clubs_owner_write on clubs for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
-create policy clubs_admin_write on clubs for update using (is_admin());
+-- pickleball_courts
+create policy pickleball_courts_public_read on pickleball_courts for select using (status = 'approved' or owner_id = auth.uid() or is_admin());
+create policy pickleball_courts_owner_write on pickleball_courts for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+create policy pickleball_courts_admin_write on pickleball_courts for update using (is_admin());
 
 -- courts
 create policy courts_public_read on courts for select using (
-  exists(select 1 from clubs c where c.id = club_id and (c.status='approved' or c.owner_id=auth.uid() or is_admin()))
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and (pc.status='approved' or pc.owner_id=auth.uid() or is_admin()))
 );
 create policy courts_owner_write on courts for all using (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 ) with check (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 );
 
 -- qrs
-create policy qrs_public_read on club_payment_qrs for select using (
-  exists(select 1 from clubs c where c.id = club_id and (c.status='approved' or c.owner_id=auth.uid() or is_admin()))
+create policy qrs_public_read on pickleball_court_payment_qrs for select using (
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and (pc.status='approved' or pc.owner_id=auth.uid() or is_admin()))
 );
-create policy qrs_owner_write on club_payment_qrs for all using (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+create policy qrs_owner_write on pickleball_court_payment_qrs for all using (
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 ) with check (
-  exists(select 1 from clubs c where c.id = club_id and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id = pickleball_court_id and pc.owner_id = auth.uid())
 );
 
 -- bookings
 create policy bookings_player_rw on bookings for all using (player_id = auth.uid()) with check (player_id = auth.uid());
 create policy bookings_owner_read on bookings for select using (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 );
 create policy bookings_owner_update on bookings for update using (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 );
 create policy bookings_admin_all on bookings for all using (is_admin());
 
@@ -137,8 +137,8 @@ on conflict do nothing;
 create policy proofs_read on storage.objects for select using (
   bucket_id = 'payment-proofs' and (
     is_admin() or owner = auth.uid() or exists(
-      select 1 from bookings b join courts ct on ct.id=b.court_id join clubs c on c.id=ct.club_id
-      where b.payment_proof_path = storage.objects.name and (b.player_id=auth.uid() or c.owner_id=auth.uid())
+      select 1 from bookings b join courts ct on ct.id=b.court_id join pickleball_courts pc on pc.id=ct.pickleball_court_id
+      where b.payment_proof_path = storage.objects.name and (b.player_id=auth.uid() or pc.owner_id=auth.uid())
     )
   )
 );
@@ -201,9 +201,9 @@ create policy profiles_self_update on profiles for update
 -- bookings_owner_update: add missing with check
 drop policy if exists bookings_owner_update on bookings;
 create policy bookings_owner_update on bookings for update using (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 ) with check (
-  exists(select 1 from courts ct join clubs c on c.id=ct.club_id where ct.id=court_id and c.owner_id=auth.uid())
+  exists(select 1 from courts ct join pickleball_courts pc on pc.id=ct.pickleball_court_id where ct.id=court_id and pc.owner_id=auth.uid())
 );
 
 -- H4: tighten storage write policies to enforce path ownership at the DB layer
@@ -224,15 +224,15 @@ create policy proofs_update on storage.objects for update using (
 drop policy if exists qrs_write on storage.objects;
 create policy qrs_write on storage.objects for insert with check (
   bucket_id = 'payment-qrs' and auth.uid() is not null and
-  exists(select 1 from clubs c where c.id::text = split_part(name,'/',1) and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id::text = split_part(name,'/',1) and pc.owner_id = auth.uid())
 );
 drop policy if exists qrs_update on storage.objects;
 create policy qrs_update on storage.objects for update using (
   bucket_id = 'payment-qrs' and
-  exists(select 1 from clubs c where c.id::text = split_part(name,'/',1) and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id::text = split_part(name,'/',1) and pc.owner_id = auth.uid())
 ) with check (
   bucket_id = 'payment-qrs' and
-  exists(select 1 from clubs c where c.id::text = split_part(name,'/',1) and c.owner_id = auth.uid())
+  exists(select 1 from pickleball_courts pc where pc.id::text = split_part(name,'/',1) and pc.owner_id = auth.uid())
 );
 
 -- M3: run the expiry function with definer rights and a fixed search_path
@@ -314,9 +314,9 @@ end; $$;
 grant execute on function approve_owner_application(uuid) to authenticated;
 grant execute on function reject_owner_application(uuid, text) to authenticated;
 
--- ===== 0011_clubs_default_approved =====
+-- ===== 0011_pickleball_courts_default_approved =====
 
-alter table clubs alter column status set default 'approved';
+alter table pickleball_courts alter column status set default 'approved';
 
 -- ===== 0012_signup_role_revert =====
 
@@ -331,6 +331,30 @@ begin
       nullif(new.raw_user_meta_data->>'name', ''),
       split_part(new.email, '@', 1)
     )
+  );
+  return new;
+end; $$;
+
+-- ===== 0013_court_image =====
+
+-- ===== 0014_court_location_and_contact =====
+
+alter table pickleball_courts add column if not exists lat double precision;
+
+alter table pickleball_courts add column if not exists lng double precision;
+
+create or replace function handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into profiles (id, full_name, contact_number)
+  values (
+    new.id,
+    coalesce(
+      nullif(new.raw_user_meta_data->>'full_name', ''),
+      nullif(new.raw_user_meta_data->>'name', ''),
+      split_part(new.email, '@', 1)
+    ),
+    nullif(new.raw_user_meta_data->>'contact_number', '')
   );
   return new;
 end; $$;

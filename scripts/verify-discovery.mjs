@@ -3,10 +3,10 @@
  * Verifies Phase 5 (Admin approval) + Phase 6 (Discovery) RLS behaviour.
  *
  * Checks:
- *  1. Create owner, set role='owner'; sign in; create club + court → status='pending'
- *  2. Anonymous client: query approved clubs → pending club NOT returned
- *  3. Create admin, set role='admin' via service-role; sign in as admin; update club status='approved'
- *  4. Anonymous client again: approved clubs → club IS returned, court is readable
+ *  1. Create owner, set role='owner'; sign in; create pickleball court + court → status='pending'
+ *  2. Anonymous client: query approved pickleball courts → pending pickleball court NOT returned
+ *  3. Create admin, set role='admin' via service-role; sign in as admin; update pickleball court status='approved'
+ *  4. Anonymous client again: approved pickleball courts → pickleball court IS returned, court is readable
  *  5. Cleanup: delete test users via service-role admin API
  */
 import { createClient } from "@supabase/supabase-js";
@@ -43,7 +43,7 @@ const password = "TestPass123!";
 
 let ownerId = null;
 let adminId = null;
-let clubId = null;
+let pickleballCourtId = null;
 let failed = false;
 
 function fail(msg) {
@@ -65,7 +65,7 @@ const anonClient = createClient(SUPABASE_URL, ANON_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// ─── Step 1: Create owner, set role, sign in, create club + court ─────────────
+// ─── Step 1: Create owner, set role, sign in, create pickleball court + court ─────────────
 console.log("\n[1/5] Creating owner user...");
 {
   const { data, error } = await adminClient.auth.admin.createUser({
@@ -106,64 +106,64 @@ console.log("\n[1/5] Creating owner user...");
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // Create club
-  const { data: club, error: clubErr } = await ownerClient
-    .from("clubs")
+  // Create pickleball court
+  const { data: pickleballCourt, error: pickleballCourtErr } = await ownerClient
+    .from("pickleball_courts")
     .insert({
       owner_id: ownerId,
-      name: `Discovery Club ${ts}`,
+      name: `Discovery Court ${ts}`,
       city: "Test City",
       amenities: ["Parking", "Showers"],
     })
     .select("id, status")
     .single();
 
-  if (clubErr || !club) {
-    fail(`create club: ${clubErr?.message ?? "no club returned"}`);
+  if (pickleballCourtErr || !pickleballCourt) {
+    fail(`create pickleball court: ${pickleballCourtErr?.message ?? "no pickleball court returned"}`);
     process.exit(1);
   }
-  clubId = club.id;
+  pickleballCourtId = pickleballCourt.id;
 
-  if (club.status !== "pending") {
-    fail(`Expected status='pending', got '${club.status}'`);
+  if (pickleballCourt.status !== "pending") {
+    fail(`Expected status='pending', got '${pickleballCourt.status}'`);
   } else {
-    ok(`club created — id: ${clubId}, status='pending'`);
+    ok(`pickleball court created — id: ${pickleballCourtId}, status='pending'`);
   }
 
   // Add a court
   const { error: courtErr } = await ownerClient.from("courts").insert({
-    club_id: clubId,
+    pickleball_court_id: pickleballCourtId,
     name: "Discovery Court A",
     hourly_rate: 350,
     open_hour: 7,
     close_hour: 21,
   });
   if (courtErr) fail(`add court: ${courtErr.message}`);
-  else ok(`court added to club`);
+  else ok(`court added to pickleball court`);
 }
 
-// ─── Step 2: Anonymous client — pending club must NOT be visible ──────────────
-console.log("\n[2/5] Anonymous client: pending club must NOT be in approved clubs...");
+// ─── Step 2: Anonymous client — pending pickleball court must NOT be visible ──────────────
+console.log("\n[2/5] Anonymous client: pending pickleball court must NOT be in approved pickleball courts...");
 {
-  const { data: clubs, error } = await anonClient
-    .from("clubs")
+  const { data: pickleballCourts, error } = await anonClient
+    .from("pickleball_courts")
     .select("id, name, status, courts(id, name)")
     .eq("status", "approved");
 
   if (error) {
-    fail(`anon query approved clubs: ${error.message}`);
+    fail(`anon query approved pickleball courts: ${error.message}`);
   } else {
-    const found = (clubs ?? []).find((c) => c.id === clubId);
+    const found = (pickleballCourts ?? []).find((c) => c.id === pickleballCourtId);
     if (found) {
-      fail(`Pending club IS visible to anonymous client — RLS not blocking!`);
+      fail(`Pending pickleball court IS visible to anonymous client — RLS not blocking!`);
     } else {
-      ok(`Pending club correctly hidden from anonymous client (${clubs?.length ?? 0} approved clubs returned)`);
+      ok(`Pending pickleball court correctly hidden from anonymous client (${pickleballCourts?.length ?? 0} approved pickleball courts returned)`);
     }
   }
 }
 
-// ─── Step 3: Create admin, sign in, approve the club ─────────────────────────
-console.log("\n[3/5] Creating admin user and approving the club...");
+// ─── Step 3: Create admin, sign in, approve the pickleball court ─────────────────────────
+console.log("\n[3/5] Creating admin user and approving the pickleball court...");
 {
   const { data, error } = await adminClient.auth.admin.createUser({
     email: adminEmail,
@@ -203,38 +203,38 @@ console.log("\n[3/5] Creating admin user and approving the club...");
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // Admin updates the club status to 'approved'
+  // Admin updates the pickleball court status to 'approved'
   const { error: updateErr } = await adminSessionClient
-    .from("clubs")
+    .from("pickleball_courts")
     .update({ status: "approved" })
-    .eq("id", clubId);
+    .eq("id", pickleballCourtId);
 
   if (updateErr) {
-    fail(`admin approve club: ${updateErr.message}`);
+    fail(`admin approve pickleball court: ${updateErr.message}`);
   } else {
-    ok(`admin successfully updated club status to 'approved'`);
+    ok(`admin successfully updated pickleball court status to 'approved'`);
   }
 }
 
-// ─── Step 4: Anonymous client — approved club IS now visible ─────────────────
-console.log("\n[4/5] Anonymous client: approved club MUST now be visible with its court...");
+// ─── Step 4: Anonymous client — approved pickleball court IS now visible ─────────────────
+console.log("\n[4/5] Anonymous client: approved pickleball court MUST now be visible with its court...");
 {
-  const { data: clubs, error } = await anonClient
-    .from("clubs")
+  const { data: pickleballCourts, error } = await anonClient
+    .from("pickleball_courts")
     .select("id, name, status, courts(id, name, hourly_rate)")
     .eq("status", "approved");
 
   if (error) {
-    fail(`anon query approved clubs (post-approve): ${error.message}`);
+    fail(`anon query approved pickleball courts (post-approve): ${error.message}`);
   } else {
-    const found = (clubs ?? []).find((c) => c.id === clubId);
+    const found = (pickleballCourts ?? []).find((c) => c.id === pickleballCourtId);
     if (!found) {
-      fail(`Approved club is NOT visible to anonymous client — RLS not granting access!`);
+      fail(`Approved pickleball court is NOT visible to anonymous client — RLS not granting access!`);
     } else {
-      ok(`Approved club IS visible (name: "${found.name}", status: '${found.status}')`);
+      ok(`Approved pickleball court IS visible (name: "${found.name}", status: '${found.status}')`);
       const courtCount = found.courts?.length ?? 0;
       if (courtCount === 0) {
-        fail(`No courts returned for the approved club`);
+        fail(`No courts returned for the approved pickleball court`);
       } else {
         ok(`Court is readable (${courtCount} court(s) returned, e.g. ₱${found.courts[0].hourly_rate}/hr)`);
       }
